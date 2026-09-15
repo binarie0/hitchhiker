@@ -17,5 +17,5 @@ public class ItemData : ScriptableObject
     internal int MaxCount = 1;
 
     [SerializeField]
-    internal GridSize Size;
+    internal GridSpace Size;
 }

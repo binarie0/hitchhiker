@@ -10,7 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 88761f69854574f45abe9022b966445c, type: 3}
-  m_Name: Example
+  m_Name: Example2
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   MaxCount: 1
-  Size: {fileID: 0}
+  Size:
+    Width: 9
+    Height: 2
+    Rows: b103000000000000u
