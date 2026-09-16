@@ -36,6 +36,21 @@ public class GridSpace
     [SerializeField]
     private uint[] Rows = { 0u };
 
+    /// <summary>
+    /// Checks whether the space is occupied at the row and column specified
+    /// </summary>
+    /// <param name="row"></param>
+    /// <param name="col"></param>
+    /// <returns></returns>
+    public bool SpaceOccupied(uint row, uint col)
+    {
+        if (row >= Height || col >= Width)
+        {
+            return false;
+        }
+        return (Rows[row] & (1 << (int)col)) != 0;
+    }
+
     
     /// <summary>
     /// Checks whether GridSpaces overlap.
@@ -44,11 +59,22 @@ public class GridSpace
     /// <param name="thisOffset"></param>
     /// <param name="otherOffset"></param>
     /// <returns></returns>
-    public bool Overlaps(GridSpace other, Vector2Int thisOffset, Vector2Int otherOffset)
+    public bool Overlaps(GridSpace other, Vector2Int thisOffset, InventoryItemOrientation thisOrientation, 
+        Vector2Int otherOffset, InventoryItemOrientation otherOrientation)
     {
         Vector2Int diff = otherOffset - thisOffset;
+
+        uint[] thisTransform = Transform(Vector2Int.zero, thisOrientation);
+        uint[] otherTransform = other.Transform(diff, otherOrientation);
+
         return false;
 
+    }
+
+    private uint[] Transform(Vector2Int offset, InventoryItemOrientation orientation = InventoryItemOrientation.Up)
+    {
+        return Rows;    
+    
     }
 
 

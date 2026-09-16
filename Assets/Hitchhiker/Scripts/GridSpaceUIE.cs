@@ -35,6 +35,7 @@ public class GridSpaceUIE : PropertyDrawer
     /// </summary>
     VisualElement GridContainer;
 
+
     
 
     /// <summary>
@@ -63,7 +64,7 @@ public class GridSpaceUIE : PropertyDrawer
         for (int i = 0; i < RowArraySerializedProperty.arraySize; i++)
         {
             RowArraySerializedProperty.GetArrayElementAtIndex(i).uintValue = i < arr.Length ? 
-                arr[i] : 
+                arr[i] & ~(uint.MaxValue << (int)WidthSerializedProperty.uintValue) : 
                 0u;
             
         }
@@ -171,11 +172,42 @@ public class GridSpaceUIE : PropertyDrawer
         {
             //toggle the value. this will be always synced with the state since the initial button state reflects the array.
             RowArraySerializedProperty.GetArrayElementAtIndex(row).uintValue ^= (1u << (int)col);
-
-            //apply mods
+            
             RowArraySerializedProperty.serializedObject.ApplyModifiedProperties();
         }
     }
+
+    /// <summary>
+    /// Fills every square specified in the grid.
+    /// This will redraw the grid
+    /// </summary>
+    private void FloodFill()
+    {
+        CopyToAll(~(uint.MaxValue << (int)WidthSerializedProperty.uintValue));
+    }
+
+    /// <summary>
+    /// Clears all values from the grid
+    /// </summary>
+    private void Clear()
+    {
+        CopyToAll(0);
+    }
+    /// <summary>
+    /// Copies a value to every row on the grid
+    /// </summary>
+    /// <param name="value"></param>
+    private void CopyToAll(uint value)
+    {
+        //sets every row to the max value we can possibly make it
+        for (int i = 0; i < RowArraySerializedProperty.arraySize; i++)
+        {
+            RowArraySerializedProperty.GetArrayElementAtIndex(i).uintValue = value;
+        }
+        RefreshGrid();
+    }
+
+    
     
     /// <summary>
     /// Whenever a grid size changes, make sure to refresh the grid.
@@ -200,8 +232,11 @@ public class GridSpaceUIE : PropertyDrawer
         HeightSerializedProperty = property.FindPropertyRelative("Height");
         RowArraySerializedProperty = property.FindPropertyRelative("Rows");
 
+        ParentContainer.style.marginTop = 8;
+        ParentContainer.style.marginBottom = 8;
         //get header
         var header = new Label("Grid Size");
+        header.style.fontSize = 16;
         ParentContainer.Add(header);
 
         // Create property fields
@@ -216,9 +251,25 @@ public class GridSpaceUIE : PropertyDrawer
         ParentContainer.Add(heightField);
         //add grid label and add grid
         header = new Label("Grid");
+        header.style.fontSize = 16;
         ParentContainer.Add(header);
+        var button = new Button(FloodFill)
+        {
+            text = "Flood"
+        };
+        button.style.marginTop = 8;
+        ParentContainer.Add(button);
+        button = new Button(Clear)
+        {
+            text = "Clear"
+        };
+        button.style.marginTop = 8;
+        ParentContainer.Add(button);
         RefreshGrid();
+
         
+
+
         return ParentContainer;
     }
 }
