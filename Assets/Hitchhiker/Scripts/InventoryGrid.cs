@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 [AddComponentMenu("Hitchhiker UI/Inventory Grid")]
-[RequireComponent(typeof(Canvas))]
-[RequireComponent(typeof(CanvasRenderer))]
+//[RequireComponent(typeof(Canvas))]
+//[RequireComponent(typeof(CanvasRenderer))]
+[RequireComponent(typeof(PanelRenderer))]
 public class InventoryGrid : MonoBehaviour
 {
 
@@ -18,7 +20,8 @@ public class InventoryGrid : MonoBehaviour
     {
         get
         {
-            return new Vector2Int((int)Canvas.pixelRect.width / (int)InventorySpace.Width, (int)Canvas.pixelRect.height / (int)InventorySpace.Height);
+            return Vector2Int.zero;
+            //return new Vector2Int((int)(Renderer.visualTreeAsset as TemplateContainer).worldBound.width / (int)InventorySpace.Width, (int)Canvas.pixelRect.height / (int)InventorySpace.Height);
         }
     }
 
@@ -26,26 +29,27 @@ public class InventoryGrid : MonoBehaviour
 
     public Rect Container;
 
-    private Canvas Canvas;
+    private PanelRenderer PanelRenderer;
     private void Start()
     {
-        Canvas = GetComponent<Canvas>();
+        PanelRenderer = GetComponent<PanelRenderer>();
         Vector2Int cs = CellSize;
-        for (uint y = 0; y < InventorySpace.Height; y++)
-        {
-            for (uint x = 0; x < InventorySpace.Width; x++)
-            {
-                if (InventorySpace.SpaceOccupied(x, y))
-                {
-                    GameObject o = new GameObject();
 
-                    Image i = o.AddComponent<Image>();
-                    i.sprite = Config.CellTexture;
-                    i.rectTransform.position = new Vector2(Container.x + cs.x * x, Container.y + cs.y * y);
-                    o.transform.SetParent(transform, false);
-                }
-            }
-        }
+        PanelRenderer.RegisterUIReloadCallback(OnUIReload);
+
 
     }
+
+    private void OnDestroy()
+    {
+        PanelRenderer.UnregisterUIReloadCallback(OnUIReload);
+    }
+
+    private void OnUIReload(PanelRenderer panelRenderer, VisualElement rootElement, int version)
+    {
+        Debug.Log("Reload of the root!");
+        Debug.Log(rootElement.name);
+        
+    }
+
 }
