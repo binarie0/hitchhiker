@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
-using static UnityEditor.Progress;
 
 public class InventoryItem : MonoBehaviour
 {
@@ -112,7 +111,8 @@ public class InventoryItem : MonoBehaviour
     /// <summary>
     /// The position of the item inside the inventory.
     /// </summary>
-    internal Vector2Int InventoryPosition = Vector2Int.zero;
+    internal Observer<Vector2Int> InventoryPosition = Vector2Int.zero;
+    
 
     /// <summary>
     /// The orientation of the item inside the inventory. This can be saved out to a file if need be later.
@@ -203,7 +203,6 @@ public class InventoryItem : MonoBehaviour
         //create base
         UI = new VisualElement();
         UI.style.position = Position.Absolute;
-        UI.style.transformOrigin = new TransformOrigin(0f, 0f);
         
 
 
@@ -226,16 +225,31 @@ public class InventoryItem : MonoBehaviour
         UI.style.backgroundColor = Color.red;
         UI.RegisterCallback(new EventCallback<MouseDownEvent>(MouseDownCallback));
         UI.RegisterCallback(new EventCallback<MouseUpEvent>(MouseUpCallback));
+
+        InventoryPosition.ValueChanged += OnGridPositionUpdate;
         return UI;
         
     }
+    internal void OnGridPositionUpdate(Vector2Int newPosition)
+    {
+        UI.style.translate = ParentGrid.MousePosition - UI.Size() * 0.75f;
+        Debug.Log(newPosition);
+    }
 
+    /// <summary>
+    /// What occurs when the user starts a grab.
+    /// </summary>
+    /// <param name="_mup"></param>
     private void MouseDownCallback(MouseDownEvent _mup)
     {
         Grabbed = true;
         ParentGrid.RemoveItem(this);
     }
 
+    /// <summary>
+    /// What occurs when the user ends a grab.
+    /// </summary>
+    /// <param name="_mup"></param>
     private void MouseUpCallback(MouseUpEvent _mup)
     {
         Grabbed = false;
@@ -247,7 +261,10 @@ public class InventoryItem : MonoBehaviour
     {
         if (Grabbed)
         {
-            UI.style.translate = ParentGrid.TargetLocation - new Vector2(UI.style.width.value.value * 0.5f, UI.style.height.value.value * 0.5f);
+            InventoryPosition.Value = ParentGrid.GridMousePosition;
+
+            
+            //UI.style.translate = ParentGrid.TargetLocation - new Vector2(UI.style.width.value.value * 0.5f, UI.style.height.value.value * 0.5f);
         }
     }
 

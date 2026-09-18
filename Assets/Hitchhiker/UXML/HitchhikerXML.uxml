@@ -1,5 +1,5 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <ui:VisualElement style="flex-grow: 1; background-color: rgba(0, 0, 0, 0.624);">
-        <ui:VisualElement name="InventoryBase" style="flex-grow: 1; flex-basis: -63%; position: absolute; height: 862px; width: 1208px; top: 100px; left: 92px; background-color: rgba(0, 0, 0, 0);"/>
+        <ui:VisualElement name="InventoryBase" style="flex-grow: 1; flex-basis: 0%; position: absolute; height: 862px; width: 1208px; top: 100px; left: 92px; background-color: rgba(0, 0, 0, 0.255);"/>
     </ui:VisualElement>
 </ui:UXML>

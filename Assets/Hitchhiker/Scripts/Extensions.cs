@@ -54,4 +54,20 @@ public static class Extensions
         }
         return null;
     }
+
+    /// <summary>
+    /// Gets an element's absolute position
+    /// </summary>
+    /// <param name="element"></param>
+    /// <returns></returns>
+    public static Vector2 GetAbsoluteLocation(this VisualElement element)
+    {
+        //Debug.Log(element.localBound.position)
+        return element.localBound.position;
+        //return new Vector2(element.style.left.value.value, element.style.top.value.value);
+    }
+    public static Vector2 Size(this VisualElement element)
+    {
+        return new Vector2(element.style.width.value.value, element.style.height.value.value);
+    }
 }

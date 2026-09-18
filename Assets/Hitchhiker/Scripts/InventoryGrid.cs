@@ -105,6 +105,35 @@ public class InventoryGrid : MonoBehaviour
     public void CloseInventory() => SetGridVisibility(false);
 
     /// <summary>
+    /// Gets the grid position that the mouse is currently over.
+    /// </summary>
+    /// <returns></returns>
+    public Vector2Int GridMousePosition
+    {
+        get
+        {
+            
+            Vector2 delta = TargetLocation - InventoryBase.GetAbsoluteLocation();
+            int dx = Mathf.RoundToInt(delta.x / CellSize.x);
+            int dy = Mathf.RoundToInt(delta.y / CellSize.y);
+            //Debug.Log($"Target location: {TargetLocation}. Delta: {delta}");
+            Debug.Log($"Delta: {delta}. grid DX: {dx}. grid DY: {dy}");
+            return new Vector2Int(dx, dy);
+        }
+    }
+
+    /// <summary>
+    /// Gets the position of the mouse in local space of <see cref="InventoryBase"/>.
+    /// </summary>
+    public Vector2 MousePosition
+    {
+        get
+        {
+            return InventoryBase.GetAbsoluteLocation() + GridMousePosition * CellSize;
+        }
+    }
+
+    /// <summary>
     /// When the UI loads for the first time, this will be called.
     /// </summary>
     /// <param name="panelRenderer"></param>
