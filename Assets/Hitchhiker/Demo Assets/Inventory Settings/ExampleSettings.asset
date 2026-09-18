@@ -12,4 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21f55cda26d4ad34aa4efc270607f542, type: 3}
   m_Name: ExampleSettings
   m_EditorClassIdentifier: Assembly-CSharp::InventorySettings
-  CellTexture: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  CellTexture: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  BackgroundColor: {r: 0.23526521, g: 0.6361522, b: 0.6528301, a: 1}
+  temp_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  Savable: 0

@@ -52,36 +52,60 @@ public class GridSpace
     }
 
     
+    
+
     /// <summary>
-    /// Checks whether GridSpaces overlap.
+    /// Checks whether this grid space can accommodate <paramref name="other"/> with a <paramref name="delta"/> offset.
     /// </summary>
     /// <param name="other"></param>
-    /// <param name="thisOffset"></param>
-    /// <param name="otherOffset"></param>
+    /// <param name="delta"></param>
     /// <returns></returns>
-    public bool Overlaps(GridSpace other, Vector2Int thisOffset, InventoryItemOrientation thisOrientation, 
-        Vector2Int otherOffset, InventoryItemOrientation otherOrientation)
+    internal bool CanAccommodate(GridSpace other, Vector2Int delta)
     {
-        Vector2Int diff = otherOffset - thisOffset;
+        //simple bounds check
+        if (delta.x < 0
+            || other.Width + delta.x >= Width
+            || delta.y < 0
+            || other.Height + delta.y >= Height
+            ) return false;
 
-        uint[] thisTransform = Transform(Vector2Int.zero, thisOrientation);
-        uint[] otherTransform = other.Transform(diff, otherOrientation);
-
-        return false;
-
+        //check every row
+        for (int rowIndex = delta.y; rowIndex < delta.y + other.Height; rowIndex++)
+        {
+            //shift the column over
+            uint row = other.Rows[rowIndex] << delta.x;
+            //if it matches the shifted row, then all columns match meaning we want to check the next row
+            if ((Rows[rowIndex] & row) != row)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
-    private uint[] Transform(Vector2Int offset, InventoryItemOrientation orientation = InventoryItemOrientation.Up)
-    {
-        return Rows;    
-    
-    }
-
-
-
+    /// <summary>
+    /// AUtomatically gets a quick size measurement for the grid space.
+    /// </summary>
+    /// <param name="o"></param>
     public static implicit operator Vector2Int(GridSpace o)
     {
         return new Vector2Int((int)o.Width, (int)o.Height);
+    }
+
+    /// <summary>
+    /// Duplicates the GridSpace. Used by <see cref="InventoryGrid"/> to have a GridSpace for available space and for the shape of the grid.
+    /// </summary>
+    /// <returns></returns>
+    public GridSpace Duplicate()
+    {
+        GridSpace e = new GridSpace
+        {
+            Width = Width,
+            Height = Height,
+            Rows = new uint[Rows.Length]
+        };
+        Array.Copy(Rows, e.Rows, Rows.Length);
+        return e;
     }
 
 }
