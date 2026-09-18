@@ -2,12 +2,9 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
 
+[AddComponentMenu("Hitchhiker UI/Inventory Item")]
 public class InventoryItem : MonoBehaviour
 {
-
-    
-
-
     public const int Max_Item_Stack = 99;
 
     /// <summary>
@@ -15,13 +12,41 @@ public class InventoryItem : MonoBehaviour
     /// </summary>
     public GridSpace ItemSpace;
 
+    /// <summary>
+    /// The image that the item will use to display.
+    /// </summary>
     [SerializeField]
     private Sprite image;
 
     /// <summary>
     /// The user interface that will be shown in-game. Can be created by calling 
     /// </summary>
-    private VisualElement UI;
+    internal VisualElement UI
+    {
+        get; private set;
+    }
+
+
+
+    /// <summary>
+    /// The position of the UI in world space.
+    /// </summary>
+    internal Vector2 UIPosition
+    {
+        get
+        {
+            if (UI == null)
+                return Vector2.zero;
+            return UI.style.translate.ToVector2();
+        }
+        set
+        {
+            if (UI != null)
+            {
+                UI.style.translate = value;
+            }
+        }
+    }
 
     /// <summary>
     /// Whether the UI has been grabbed.
@@ -102,9 +127,9 @@ public class InventoryItem : MonoBehaviour
     public UnityEvent ItemDestroyed = new();
 
     /// <summary>
-    /// The grid that this item is contained in.
+    /// The grid that this item is contained in. 
     /// </summary>
-    InventoryGrid ParentGrid;
+    internal InventoryGrid ParentGrid;
 
 
 
@@ -112,6 +137,8 @@ public class InventoryItem : MonoBehaviour
     /// The position of the item inside the inventory.
     /// </summary>
     internal Observer<Vector2Int> InventoryPosition = Vector2Int.zero;
+
+    private Vector2Int PreviousPosition;
     
 
     /// <summary>
@@ -131,15 +158,24 @@ public class InventoryItem : MonoBehaviour
     }
 
     /// <summary>
-    /// Determines through <see cref="GridSpace.Overlaps(GridSpace, Vector2Int, InventoryItemOrientation, Vector2Int, InventoryItemOrientation)"/>
-    /// whether an inventory item is overlapping with this item.
+    /// Turns the item clockwise.
     /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public bool Overlaps(InventoryItem other)
+    public void TurnClockwise()
     {
-        //TODO
-        return false;
+        Orientation = (InventoryItemOrientation)(((int)Orientation + 1) % ((int)InventoryItemOrientation.Left + 1));
+    }
+
+    /// <summary>
+    /// Turns the item counterclockwise.
+    /// </summary>
+    public void TurnCounterclockwise()
+    {
+        int n = (int)(Orientation) - 1;
+        if (n < 0)
+        {
+            n += ((int)InventoryItemOrientation.Left + 1);
+        }
+        Orientation = (InventoryItemOrientation)n;
     }
     
     /// <summary>
@@ -179,25 +215,27 @@ public class InventoryItem : MonoBehaviour
 
     internal void AddToInventory(InventoryGrid grid)
     {
-        //dependency injection
-        ParentGrid = grid;
         
         //generate our ui and add it to the grid
         GenerateUI(ParentGrid.CellSize);
         ParentGrid.RootElement.Add(UI);
     }
 
+    internal void RevertPosition()
+    {
+        InventoryPosition.Value = PreviousPosition;
+    }
 
     /// <summary>
     /// Generates the UI of the item.
     /// </summary>
     /// <param name="CellSize"></param>
     /// <returns></returns>
-    internal VisualElement GenerateUI(Vector2Int CellSize)
+    internal void GenerateUI(Vector2Int CellSize)
     {
         if (UI != null)
         {
-            return UI;
+            return;
         }
 
         //create base
@@ -226,13 +264,17 @@ public class InventoryItem : MonoBehaviour
         UI.RegisterCallback(new EventCallback<MouseDownEvent>(MouseDownCallback));
         UI.RegisterCallback(new EventCallback<MouseUpEvent>(MouseUpCallback));
 
-        InventoryPosition.ValueChanged += OnGridPositionUpdate;
-        return UI;
-        
+        InventoryPosition.ValueChanged += OnGridPositionUpdate;        
     }
+
+
+    /// <summary>
+    /// Gets called whenever the grid position updates.
+    /// </summary>
+    /// <param name="newPosition"></param>
     internal void OnGridPositionUpdate(Vector2Int newPosition)
     {
-        UI.style.translate = ParentGrid.MousePosition - UI.Size() * 0.75f;
+        UI.style.backgroundColor = ParentGrid.CanBePlaced(this) ? Color.green : Color.red;
         Debug.Log(newPosition);
     }
 
@@ -243,6 +285,7 @@ public class InventoryItem : MonoBehaviour
     private void MouseDownCallback(MouseDownEvent _mup)
     {
         Grabbed = true;
+        PreviousPosition = InventoryPosition;
         ParentGrid.RemoveItem(this);
     }
 
@@ -257,13 +300,14 @@ public class InventoryItem : MonoBehaviour
     }
 
 
+
     private void Update()
     {
         if (Grabbed)
         {
             InventoryPosition.Value = ParentGrid.GridMousePosition;
+            UI.style.translate = ParentGrid.MousePosition;
 
-            
             //UI.style.translate = ParentGrid.TargetLocation - new Vector2(UI.style.width.value.value * 0.5f, UI.style.height.value.value * 0.5f);
         }
     }

@@ -61,6 +61,11 @@ using System.Text;
     {
         return new Observer<T>(value);
     }
+
+    public static implicit operator T(Observer<T> value)
+    {
+        return value.value;
+    }
 }
 
 

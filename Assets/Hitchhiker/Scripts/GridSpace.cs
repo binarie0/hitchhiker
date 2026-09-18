@@ -64,16 +64,16 @@ public class GridSpace
     {
         //simple bounds check
         if (delta.x < 0
-            || other.Width + delta.x >= Width
+            || other.Width + delta.x > Width
             || delta.y < 0
-            || other.Height + delta.y >= Height
+            || other.Height + delta.y > Height
             ) return false;
 
         //check every row
         for (int rowIndex = delta.y; rowIndex < delta.y + other.Height; rowIndex++)
         {
             //shift the column over
-            uint row = other.Rows[rowIndex] << delta.x;
+            uint row = other.Rows[rowIndex - delta.y] << delta.x;
             //if it matches the shifted row, then all columns match meaning we want to check the next row
             if ((Rows[rowIndex] & row) != row)
             {
@@ -81,6 +81,43 @@ public class GridSpace
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// Marks all space that the reserved space takes up as not free.
+    /// </summary>
+    /// <param name="reservedSpace"></param>
+    /// <param name="delta"></param>
+    internal void MarkSpaceAsReserved(GridSpace reservedSpace, Vector2Int delta)
+    {
+        if (!CanAccommodate(reservedSpace, delta))
+        {
+            return;
+        }
+        //check every row
+        for (int rowIndex = delta.y; rowIndex < delta.y + reservedSpace.Height; rowIndex++)
+        {
+            //shift the column over
+            uint row = reservedSpace.Rows[rowIndex - delta.y] << delta.x;
+            Rows[rowIndex] &= ~row;
+        }
+
+    }
+
+    /// <summary>
+    /// Unreserves space and marks all spaces as free.
+    /// </summary>
+    /// <param name="reservedSpace"></param>
+    /// <param name="delta"></param>
+    internal void UnreserveSpace(GridSpace reservedSpace, Vector2Int delta)
+    {
+        //check every row
+        for (int rowIndex = delta.y; rowIndex < delta.y + reservedSpace.Height; rowIndex++)
+        {
+            //shift the column over
+            uint row = reservedSpace.Rows[rowIndex - delta.y] << delta.x;
+            Rows[rowIndex] |= row;
+        }
     }
 
     /// <summary>
