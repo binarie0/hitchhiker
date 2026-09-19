@@ -69,10 +69,12 @@ public class InventoryGrid : MonoBehaviour
         PanelRenderer.RegisterUIReloadCallback(OnUIReload);
 
         AvailableSpace = InventorySpace.Duplicate();
+    }
 
-        
 
-
+    internal void SetActiveItem(InventoryItem item)
+    {
+        CurrentItem = item;
     }
 
     
@@ -82,6 +84,29 @@ public class InventoryGrid : MonoBehaviour
     public void ToggleGrid(CallbackContext _ctx)
     {
         SetGridVisibility(!gameObject.activeSelf);
+    }
+
+    /// <summary>
+    /// Rotates the active item in the inventory. Use <see cref="RotateActiveItem()"/> for a more direct call.
+    /// </summary>
+    /// <param name="_ctx"></param>
+    public void RotateActiveItem(CallbackContext _ctx)
+    {
+        if (_ctx.ReadValueAsButton())
+            RotateActiveItem();
+    }
+
+    /// <summary>
+    /// Rotates the active item (the item being held) in the inventory.
+    /// </summary>
+    public void RotateActiveItem()
+    {
+        if (CurrentItem == null)
+            return;
+
+
+        CurrentItem.TurnClockwise();
+        Debug.Log("Turning current item clockwise!");
     }
 
     /// <summary>
@@ -187,7 +212,8 @@ public class InventoryGrid : MonoBehaviour
     {
         GameObject o = Instantiate(TestingObject);
         o.transform.parent = transform;
-        AddItem(o.GetComponent<InventoryItem>());
+        InitItem(o.GetComponent<InventoryItem>(), false);
+        //AddItem(o.GetComponent<InventoryItem>());
         
     }
 
@@ -307,14 +333,17 @@ public class InventoryGrid : MonoBehaviour
     /// Sets up an item to be visually displayed in the inventory.
     /// </summary>
     /// <param name="item"></param>
-    private void InitItem(InventoryItem item)
+    private void InitItem(InventoryItem item, bool reserveSpace = true)
     {
 
         //add item to inventory
         Items.Add(item);
 
-        
-        AvailableSpace.MarkSpaceAsReserved(item.ItemSpace, item.InventoryPosition);
+        if (reserveSpace)
+        {
+            item.SpaceReserved = true;
+            AvailableSpace.MarkSpaceAsReserved(item.ItemSpace, item.InventoryPosition);
+        }
         
         //setup required item parts
         item.ParentGrid = this;
@@ -335,22 +364,18 @@ public class InventoryGrid : MonoBehaviour
     {
         Items.Remove(item);
         //item.ParentGrid = null;
-        AvailableSpace.UnreserveSpace(item.ItemSpace, item.InventoryPosition);
+        if (item.SpaceReserved)
+        {
+            AvailableSpace.UnreserveSpace(item.ItemSpace, item.InventoryPosition);
+        }
     }
 
     public void PlaceNearest(InventoryItem item)
     {
-
         //TODO calculate the exact place to put the item
-        PlaceItem(item);
+        AddItem(item);
     }
 
-    public bool PlaceItem(InventoryItem item)
-    {
-
-        //TODO: place the item
-        return true;
-    }
 }
 
 

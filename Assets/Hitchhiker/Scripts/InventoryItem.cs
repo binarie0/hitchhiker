@@ -131,6 +131,11 @@ public class InventoryItem : MonoBehaviour
     /// </summary>
     internal InventoryGrid ParentGrid;
 
+    /// <summary>
+    /// Whether the grid has reserved space for this element.
+    /// </summary>
+    internal bool SpaceReserved;
+
 
 
     /// <summary>
@@ -153,7 +158,7 @@ public class InventoryItem : MonoBehaviour
     {
         get
         {
-            return -Mathf.PI * 0.5f * (float)Orientation;
+            return -Mathf.PI * 0.25f * (int)Orientation;
         }
     }
 
@@ -163,6 +168,12 @@ public class InventoryItem : MonoBehaviour
     public void TurnClockwise()
     {
         Orientation = (InventoryItemOrientation)(((int)Orientation + 1) % ((int)InventoryItemOrientation.Left + 1));
+        SyncRotation();
+    }
+
+    private void SyncRotation()
+    {
+        UI.style.rotate = new Rotate(new Angle(Rotation, AngleUnit.Radian));
     }
 
     /// <summary>
@@ -176,6 +187,7 @@ public class InventoryItem : MonoBehaviour
             n += ((int)InventoryItemOrientation.Left + 1);
         }
         Orientation = (InventoryItemOrientation)n;
+        SyncRotation();
     }
     
     /// <summary>
@@ -286,6 +298,8 @@ public class InventoryItem : MonoBehaviour
     {
         Grabbed = true;
         PreviousPosition = InventoryPosition;
+
+        ParentGrid.SetActiveItem(this);
         ParentGrid.RemoveItem(this);
     }
 
@@ -296,6 +310,7 @@ public class InventoryItem : MonoBehaviour
     private void MouseUpCallback(MouseUpEvent _mup)
     {
         Grabbed = false;
+        ParentGrid.SetActiveItem(null);
         ParentGrid.AddItem(this);
     }
 
