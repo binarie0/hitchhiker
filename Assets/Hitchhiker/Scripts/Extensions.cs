@@ -54,4 +54,13 @@ public static class Extensions
         }
         return null;
     }
+    public static Vector2 Size(this VisualElement element)
+    {
+        return new Vector2(element.style.width.value.value, element.style.height.value.value);
+    }
+
+    public static Vector2 ToVector2(this StyleTranslate translate)
+    {
+        return new Vector2(translate.value.x.value, translate.value.y.value);
+    }
 }

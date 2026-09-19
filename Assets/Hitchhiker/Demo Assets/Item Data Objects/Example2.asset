@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   MaxCount: 1
   Size:
-    Width: 9
+    Width: 2
     Height: 2
-    Rows: b103000000000000u
+    Rows: 0300000001000000u

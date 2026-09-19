@@ -422,7 +422,7 @@ GameObject:
   - component: {fileID: 1910726469}
   - component: {fileID: 1910726475}
   m_Layer: 0
-  m_Name: ExampleGameobject
+  m_Name: ExampleInventory
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -440,19 +440,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 991cbd83781940a41b16752e9f1b6d24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryGrid
+  DEBUG: 1
+  TestingObject: {fileID: 1503365573486324477, guid: a53e7ca4521148c498cec23526a37440, type: 3}
   InventorySpace:
     Width: 9
     Height: 5
     Rows: fe000000ff010000ff010000ff0000007e000000u
   BaseElementID: InventoryBase
-  Savable: 0
+  SavePath: 
   Config: {fileID: 11400000, guid: 9f36f454977b5fc4aa1c03afe8688504, type: 2}
-  Container:
-    serializedVersion: 2
-    x: 400
-    y: 400
-    width: 884.9
-    height: 784
 --- !u!224 &1910726473
 RectTransform:
   m_ObjectHideFlags: 0

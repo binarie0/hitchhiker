@@ -97,9 +97,19 @@
                     "priority": 0
                 },
                 {
-                    "name": "Inventory",
+                    "name": "InventoryToggle",
                     "type": "Button",
                     "id": "326c86e6-84ed-439d-8f6a-acd18103609a",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "InventoryItemRotate",
+                    "type": "Button",
+                    "id": "5f04987f-bf4d-4d96-a525-e23dc54c8101",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -500,7 +510,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse;Gamepad;Touch;Joystick;XR",
-                    "action": "Inventory",
+                    "action": "InventoryToggle",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -511,7 +521,18 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "Inventory",
+                    "action": "InventoryToggle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d2a9f048-9f3f-445e-9ce3-e769b4c43f5f",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "InventoryItemRotate",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
