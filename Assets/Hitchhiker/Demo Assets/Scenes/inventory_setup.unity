@@ -390,6 +390,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: 326c86e6-84ed-439d-8f6a-acd18103609a
     m_ActionName: 'Player/Inventory[/Keyboard/i]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1910726469}
+        m_TargetAssemblyTypeName: InventoryGrid, Assembly-CSharp
+        m_MethodName: RotateActiveItem
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 5f04987f-bf4d-4d96-a525-e23dc54c8101
+    m_ActionName: 'Player/InventoryItemRotate[/Keyboard/r]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player

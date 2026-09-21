@@ -36,6 +36,25 @@ public class GridSpace
     [SerializeField]
     private uint[] Rows = { 0u };
 
+
+    public GridSpace()
+    {
+
+    }
+    /// <summary>
+    /// Creates a new GridSpace given a set width and height.
+    /// </summary>
+    /// <param name="width"></param>
+    /// <param name="height"></param>
+    private GridSpace(uint width, uint height)
+    {
+        Width = width;
+        Height = height;
+        Rows = new uint[Height];
+    }
+
+
+
     /// <summary>
     /// Checks whether the space is occupied at the row and column specified
     /// </summary>
@@ -105,6 +124,36 @@ public class GridSpace
     }
 
     /// <summary>
+    /// Sets a cell's values directly.
+    /// </summary>
+    /// <param name="location"></param>
+    /// <param name="on"></param>
+    internal void SetCellValue(Vector2Int location, bool on)
+    {
+        if (location.x < 0
+            ||
+            location.y < 0
+            ||
+            location.x >= Width
+            || location.y >= Height)
+            return;
+
+        if (on)
+        {
+            Rows[location.y] |= (1u << (int)location.x);
+        }
+        else
+        {
+            Rows[location.y] &= ~(1u << (int)location.x);
+        }
+    }
+
+    internal void SetCellValue(uint col, uint row, bool on)
+    {
+        SetCellValue(new Vector2Int((int)col, (int)row), on);
+    }
+
+    /// <summary>
     /// Unreserves space and marks all spaces as free.
     /// </summary>
     /// <param name="reservedSpace"></param>
@@ -135,14 +184,61 @@ public class GridSpace
     /// <returns></returns>
     public GridSpace Duplicate()
     {
-        GridSpace e = new GridSpace
-        {
-            Width = Width,
-            Height = Height,
-            Rows = new uint[Rows.Length]
-        };
+        GridSpace e = new GridSpace(Width, Height);        
         Array.Copy(Rows, e.Rows, Rows.Length);
         return e;
     }
+
+    public GridSpace Rotate(GridSpaceOrientation from, GridSpaceOrientation to)
+    {
+        if (from == to)
+            return this;
+
+        int f = (int)from;
+        int t = (int)to;
+        //if we are just flipping the location of each value we can just directly make a copy
+        if ((f - t) % 2 == 0)
+        {
+            return Flip180();
+        }
+        else
+        {
+            GridSpace r = new GridSpace(Height, Width);
+            for (uint row = 0; row < Height; row++)
+            {
+                for (uint col = 0; col < Width; col++)
+                {
+                    r.SetCellValue(row, col, SpaceOccupied(Height - row - 1, Width - row - 1));
+                }
+            }
+            return f - t > 0 || (f - t < -2) ? r.Flip180() : r;
+        }
+    }
+
+    private GridSpace Flip180()
+    {
+        GridSpace copy = new GridSpace(Width, Height);
+        for (uint row = 0; row < Height; row++)
+        {
+            for (uint col = 0; col < Width; col++)
+            {
+                copy.SetCellValue(col, row, SpaceOccupied(Height - row - 1, Width - row - 1));
+            }
+        }
+        return copy;
+    }
+}
+
+/// <summary>
+/// The orientation of an item.
+/// <br></br><br></br>
+/// When designing the item inside the Inspector, you are designing the item with the Up orientation.
+/// </summary>
+public enum GridSpaceOrientation
+{
+    Up = 0,
+    Right = 1,
+    Down = 2,
+    Left = 3,
 
 }

@@ -92,8 +92,11 @@ public class InventoryGrid : MonoBehaviour
     /// <param name="_ctx"></param>
     public void RotateActiveItem(CallbackContext _ctx)
     {
-        if (_ctx.ReadValueAsButton())
+        if (_ctx.ReadValue<float>() == 1 && _ctx.performed)
+        {
+            Debug.Log("This is getting called!");
             RotateActiveItem();
+        }
     }
 
     /// <summary>
@@ -243,7 +246,7 @@ public class InventoryGrid : MonoBehaviour
     /// <returns></returns>
     internal bool CanBePlaced(InventoryItem item)
     {
-        return AvailableSpace.CanAccommodate(item.ItemSpace, item.InventoryPosition);
+        return AvailableSpace.CanAccommodate(item.CurrentSpace, item.InventoryPosition);
     }
 
 
@@ -342,12 +345,12 @@ public class InventoryGrid : MonoBehaviour
         if (reserveSpace)
         {
             item.SpaceReserved = true;
-            AvailableSpace.MarkSpaceAsReserved(item.ItemSpace, item.InventoryPosition);
+            AvailableSpace.MarkSpaceAsReserved(item.CurrentSpace, item.InventoryPosition);
         }
         
         //setup required item parts
         item.ParentGrid = this;
-        item.GenerateUI(CellSize);
+        item.GenerateUI(CellSize, Config); 
         
         //add item to UI if we haven't already
         if (!RootElement.Contains(item.UI))
@@ -366,7 +369,8 @@ public class InventoryGrid : MonoBehaviour
         //item.ParentGrid = null;
         if (item.SpaceReserved)
         {
-            AvailableSpace.UnreserveSpace(item.ItemSpace, item.InventoryPosition);
+            AvailableSpace.UnreserveSpace(item.CurrentSpace, item.InventoryPosition);
+            item.SpaceReserved = false;
         }
     }
 

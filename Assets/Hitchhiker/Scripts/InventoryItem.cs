@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
@@ -7,10 +8,13 @@ public class InventoryItem : MonoBehaviour
 {
     public const int Max_Item_Stack = 99;
 
+    [SerializeField]
     /// <summary>
     /// The space that the item takes up.
     /// </summary>
-    public GridSpace ItemSpace;
+    private GridSpace ItemSpace;
+
+    internal GridSpace CurrentSpace;
 
     /// <summary>
     /// The image that the item will use to display.
@@ -144,12 +148,13 @@ public class InventoryItem : MonoBehaviour
     internal Observer<Vector2Int> InventoryPosition = Vector2Int.zero;
 
     private Vector2Int PreviousPosition;
-    
+
+    private List<VisualElement> GridUI = new List<VisualElement>();
 
     /// <summary>
     /// The orientation of the item inside the inventory. This can be saved out to a file if need be later.
     /// </summary>
-    internal InventoryItemOrientation Orientation = InventoryItemOrientation.Up;
+    internal GridSpaceOrientation Orientation = GridSpaceOrientation.Up;
 
     /// <summary>
     /// The current rotation to show the item in. This is ascertained through <see cref="Orientation"/>.
@@ -158,7 +163,7 @@ public class InventoryItem : MonoBehaviour
     {
         get
         {
-            return -Mathf.PI * 0.25f * (int)Orientation;
+            return -Mathf.PI * 0.5f * (int)Orientation;
         }
     }
 
@@ -167,13 +172,19 @@ public class InventoryItem : MonoBehaviour
     /// </summary>
     public void TurnClockwise()
     {
-        Orientation = (InventoryItemOrientation)(((int)Orientation + 1) % ((int)InventoryItemOrientation.Left + 1));
+        Orientation = (GridSpaceOrientation)(((int)Orientation + 1) % ((int)GridSpaceOrientation.Left + 1));
         SyncRotation();
     }
 
     private void SyncRotation()
     {
         UI.style.rotate = new Rotate(new Angle(Rotation, AngleUnit.Radian));
+        CurrentSpace = ItemSpace.Rotate(GridSpaceOrientation.Up, Orientation);
+    }
+
+    private void Start()
+    {
+        CurrentSpace = ItemSpace.Duplicate();
     }
 
     /// <summary>
@@ -184,9 +195,9 @@ public class InventoryItem : MonoBehaviour
         int n = (int)(Orientation) - 1;
         if (n < 0)
         {
-            n += ((int)InventoryItemOrientation.Left + 1);
+            n += ((int)GridSpaceOrientation.Left + 1);
         }
-        Orientation = (InventoryItemOrientation)n;
+        Orientation = (GridSpaceOrientation)n;
         SyncRotation();
     }
     
@@ -229,7 +240,7 @@ public class InventoryItem : MonoBehaviour
     {
         
         //generate our ui and add it to the grid
-        GenerateUI(ParentGrid.CellSize);
+        GenerateUI(ParentGrid.CellSize, grid.Config);
         ParentGrid.RootElement.Add(UI);
     }
 
@@ -243,7 +254,7 @@ public class InventoryItem : MonoBehaviour
     /// </summary>
     /// <param name="CellSize"></param>
     /// <returns></returns>
-    internal void GenerateUI(Vector2Int CellSize)
+    internal void GenerateUI(Vector2Int CellSize, InventorySettings settings)
     {
         if (UI != null)
         {
@@ -252,7 +263,38 @@ public class InventoryItem : MonoBehaviour
 
         //create base
         UI = new VisualElement();
+        UI.style.transformOrigin = new TransformOrigin(0, 0);
         UI.style.position = Position.Absolute;
+
+        Background celltexture = Background.FromSprite(settings.CellTexture);
+
+        VisualElement gridContainer = new VisualElement();
+        for (uint col = 0; col < ItemSpace.Width; col++)
+        {
+            for (uint row = 0; row < ItemSpace.Height; row++)
+            {
+                if (ItemSpace.SpaceOccupied(row, col))
+                {
+                    var ve = new VisualElement();
+                    ve.style.backgroundImage = celltexture;
+                    ve.style.width = CellSize.x;
+                    ve.style.height = CellSize.y;
+                    ve.style.position = Position.Absolute;
+                    ve.style.top =0; ve.style.left = 0;
+                    ve.style.translate = new Translate(CellSize.x * col, CellSize.y * row);
+                    gridContainer.Add(ve);
+                    GridUI.Add(ve);
+                }
+            }
+        }
+        gridContainer.style.position = Position.Absolute;
+        UI.Add(gridContainer);
+        //UI.style.backgroundImage = Background.FromSprite(settings.CellTexture);
+        //UI.style.backgroundPositionX = new BackgroundPosition(BackgroundPositionKeyword.Left);
+        //UI.style.backgroundPositionY = new BackgroundPosition(BackgroundPositionKeyword.Top);
+        
+        //UI.style.backgroundSize = new BackgroundSize(CellSize.x, CellSize.y);
+        //UI.style.backgroundRepeat = new BackgroundRepeat(Repeat.Repeat, Repeat.Repeat);
         
 
 
@@ -272,7 +314,7 @@ public class InventoryItem : MonoBehaviour
 
         UI.style.width = w;
         UI.style.height = h;
-        UI.style.backgroundColor = Color.red;
+        //UI.style.backgroundColor = Color.red;
         UI.RegisterCallback(new EventCallback<MouseDownEvent>(MouseDownCallback));
         UI.RegisterCallback(new EventCallback<MouseUpEvent>(MouseUpCallback));
 
@@ -286,7 +328,10 @@ public class InventoryItem : MonoBehaviour
     /// <param name="newPosition"></param>
     internal void OnGridPositionUpdate(Vector2Int newPosition)
     {
-        UI.style.backgroundColor = ParentGrid.CanBePlaced(this) ? Color.green : Color.red;
+        foreach (VisualElement ve in GridUI)
+        {
+            ve.style.unityBackgroundImageTintColor = ParentGrid.CanBePlaced(this) ? Color.green : Color.red;
+        }
         Debug.Log(newPosition);
     }
 
@@ -330,17 +375,5 @@ public class InventoryItem : MonoBehaviour
 }
 
 
-/// <summary>
-/// The orientation of an item.
-/// <br></br><br></br>
-/// When designing the item inside the Inspector, you are designing the item with the Up orientation.
-/// </summary>
-public enum InventoryItemOrientation
-{
-    Up = 0,
-    Right = 1,
-    Down = 2,
-    Left = 3,
-    
-}
+
 
