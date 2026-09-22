@@ -27,7 +27,7 @@ using System.Text;
         }
         private T value;
 
-        internal Observer(T initValue = default(T), params OnValueChangedDelegate[] initDelegates)
+        internal Observer(T initValue = default, params OnValueChangedDelegate[] initDelegates)
         {
             value = initValue;
         if (initDelegates != null)

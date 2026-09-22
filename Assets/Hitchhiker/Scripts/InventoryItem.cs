@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
@@ -5,12 +6,17 @@ using UnityEngine.UIElements;
 [AddComponentMenu("Hitchhiker UI/Inventory Item")]
 public class InventoryItem : MonoBehaviour
 {
-    public const int Max_Item_Stack = 99;
 
+    [SerializeField]
     /// <summary>
     /// The space that the item takes up.
     /// </summary>
-    public GridSpace ItemSpace;
+    private GridSpace ItemSpace;
+
+    /// <summary>
+    /// The current space that the item takes up.
+    /// </summary>
+    internal GridSpace CurrentSpace;
 
     /// <summary>
     /// The image that the item will use to display.
@@ -54,6 +60,9 @@ public class InventoryItem : MonoBehaviour
     private bool Grabbed;
     
 
+    /// <summary>
+    /// The ID associated with this item. This is used to associate items of the same type.
+    /// </summary>
     [SerializeField, Tooltip("The item ID associated with this Item. This is used to associate items of the same type.")]
     private int inventoryID;
 
@@ -71,8 +80,8 @@ public class InventoryItem : MonoBehaviour
     /// <summary>
     /// The maximum amount of items that can be stacked for this item. If set to 1, the item is not stackable.
     /// </summary>
-    [Tooltip("The maximum amount of items that can be stacked for this item. If set to 1, the item is not stackable."),
-        Range(1, Max_Item_Stack)]
+    [Tooltip("The maximum amount of items that can be stacked for this item. If set to 1, the item is not stackable.\nNote: the max count range can be arbitrarily increased by editing the source code."),
+        Range(1, 99)]
     private int maxCount = 1;
 
     /// <summary>
@@ -132,49 +141,67 @@ public class InventoryItem : MonoBehaviour
     internal InventoryGrid ParentGrid;
 
     /// <summary>
+    /// The configuration settings for this item.
+    /// </summary>
+    private InventorySettings Config;
+
+    private Vector2Int CellSize;
+    /// <summary>
     /// Whether the grid has reserved space for this element.
     /// </summary>
-    internal bool SpaceReserved;
+    internal bool SpaceReserved
+    {
+        get
+        {
+            return spaceReserved && InventoryPosition.Value != -Vector2Int.one;
+        }
+        set
+        {
+            spaceReserved = value;
+        }
+    }
+
+    private bool spaceReserved;
 
 
 
     /// <summary>
     /// The position of the item inside the inventory.
     /// </summary>
-    internal Observer<Vector2Int> InventoryPosition = Vector2Int.zero;
+    internal Observer<Vector2Int> InventoryPosition;
 
     private Vector2Int PreviousPosition;
-    
+
+    private List<VisualElement> GridUI = new List<VisualElement>();
 
     /// <summary>
     /// The orientation of the item inside the inventory. This can be saved out to a file if need be later.
     /// </summary>
-    internal InventoryItemOrientation Orientation = InventoryItemOrientation.Up;
+    internal GridSpaceOrientation Orientation = GridSpaceOrientation.Up;
 
-    /// <summary>
-    /// The current rotation to show the item in. This is ascertained through <see cref="Orientation"/>.
-    /// </summary>
-    public float Rotation
+    private bool Ready;
+    
+
+
+    #region Unity-provided Methods
+    private void Start()
     {
-        get
+        CurrentSpace = ItemSpace.Duplicate();
+        InventoryPosition = new Observer<Vector2Int>(-(Vector2Int)CurrentSpace, OnGridPositionUpdate);
+        Ready = true;
+    }
+
+    private void Update()
+    {
+        if (Grabbed)
         {
-            return -Mathf.PI * 0.25f * (int)Orientation;
+            InventoryPosition.Value = ParentGrid.GridMousePosition;
+            UI.style.translate = ParentGrid.MousePosition;
         }
     }
+    #endregion
 
-    /// <summary>
-    /// Turns the item clockwise.
-    /// </summary>
-    public void TurnClockwise()
-    {
-        Orientation = (InventoryItemOrientation)(((int)Orientation + 1) % ((int)InventoryItemOrientation.Left + 1));
-        SyncRotation();
-    }
-
-    private void SyncRotation()
-    {
-        UI.style.rotate = new Rotate(new Angle(Rotation, AngleUnit.Radian));
-    }
+    #region Rotation
 
     /// <summary>
     /// Turns the item counterclockwise.
@@ -184,12 +211,33 @@ public class InventoryItem : MonoBehaviour
         int n = (int)(Orientation) - 1;
         if (n < 0)
         {
-            n += ((int)InventoryItemOrientation.Left + 1);
+            n += ((int)GridSpaceOrientation.Left + 1);
         }
-        Orientation = (InventoryItemOrientation)n;
+        Orientation = (GridSpaceOrientation)n;
         SyncRotation();
     }
-    
+
+    /// <summary>
+    /// Turns the item clockwise.
+    /// </summary>
+    public void TurnClockwise()
+    {
+        Orientation = (GridSpaceOrientation)(((int)Orientation + 1) % ((int)GridSpaceOrientation.Left + 1));
+        SyncRotation();
+    }
+
+    /// <summary>
+    /// Syncs up controller and view. Also updates the space by which the item takes up.
+    /// </summary>
+    private void SyncRotation()
+    {
+        CurrentSpace = ItemSpace.Rotate(GridSpaceOrientation.Up, Orientation);
+        RegenerateUI();
+    }
+
+    #endregion
+
+    #region Stacking
     /// <summary>
     /// Stacks a like item onto this item.
     /// </summary>
@@ -225,11 +273,14 @@ public class InventoryItem : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region Inventory Addition and Edge Case Handling
     internal void AddToInventory(InventoryGrid grid)
     {
         
         //generate our ui and add it to the grid
-        GenerateUI(ParentGrid.CellSize);
+        GenerateUI(ParentGrid.CellSize, grid.Config);
         ParentGrid.RootElement.Add(UI);
     }
 
@@ -238,57 +289,127 @@ public class InventoryItem : MonoBehaviour
         InventoryPosition.Value = PreviousPosition;
     }
 
+    #endregion
+
+    #region UI Generation
+
+    /// <summary>
+    /// Regenerates UI upon changing the <see cref="CurrentSpace"/> of the object
+    /// </summary>
+    internal void RegenerateUI()
+    {
+
+        //clears all UI elements that are children
+        UI.Clear(VisualElementClearOptions.RecursiveReleaseResources);
+        GridUI.Clear();
+        Background celltexture = Background.FromSprite(Config.CellTexture);
+
+        VisualElement gridContainer = new VisualElement();
+        for (uint col = 0; col < CurrentSpace.Width; col++)
+        {
+            for (uint row = 0; row < CurrentSpace.Height; row++)
+            {
+                if (CurrentSpace.SpaceOccupied(col, row))
+                {
+                    var ve = new VisualElement();
+                    ve.style.backgroundImage = celltexture;
+                    ve.style.width = CellSize.x;
+                    ve.style.height = CellSize.y;
+                    ve.style.position = Position.Absolute;
+                    ve.style.top =0; ve.style.left = 0;
+                    ve.style.translate = new Translate(CellSize.x * col, CellSize.y * row);
+                    gridContainer.Add(ve);
+                    GridUI.Add(ve);
+                }
+            }
+        }
+        gridContainer.style.position = Position.Absolute;
+        UI.Add(gridContainer);
+        //UI.style.backgroundImage = Background.FromSprite(settings.CellTexture);
+        //UI.style.backgroundPositionX = new BackgroundPosition(BackgroundPositionKeyword.Left);
+        //UI.style.backgroundPositionY = new BackgroundPosition(BackgroundPositionKeyword.Top);
+
+        //UI.style.backgroundSize = new BackgroundSize(CellSize.x, CellSize.y);
+        //UI.style.backgroundRepeat = new BackgroundRepeat(Repeat.Repeat, Repeat.Repeat);
+
+
+
+        float imgw = CellSize.x * ItemSpace.Width;
+        float imgh = CellSize.y * ItemSpace.Height;
+
+        float w = CellSize.x * CurrentSpace.Width;
+        float h = CellSize.y * CurrentSpace.Height;
+
+        Image img = new Image()
+        {
+            sprite = image,
+            scaleMode = ScaleMode.StretchToFill,
+            
+        };
+
+        
+        img.style.width = imgw;
+        img.style.height = imgh;
+        img.style.rotate = new StyleRotate(new Angle((int)Orientation * Mathf.PI*0.5f, AngleUnit.Radian));
+
+        //if the orientation does not align properly and we are on an odd rotation, the image for some reason gets offset
+        //weirdly. This fixes that visual bug.
+        if (imgw != imgh && (int)Orientation % 2 == 1)
+        {
+            img.style.translate = new Translate(-CellSize.x * 0.5f, CellSize.y * 0.5f);
+        }
+        UI.Add(img);
+
+        UI.style.width = w;
+        UI.style.height = h;
+        InventoryPosition.EmitChanged();
+
+    }
     /// <summary>
     /// Generates the UI of the item.
     /// </summary>
     /// <param name="CellSize"></param>
     /// <returns></returns>
-    internal void GenerateUI(Vector2Int CellSize)
+    internal void GenerateUI(Vector2Int CellSize, InventorySettings settings)
     {
         if (UI != null)
         {
             return;
         }
+        this.CellSize = CellSize;
+        Config = settings;
+        
+        if (!Ready)
+        {
+            Start();
+        }
 
         //create base
         UI = new VisualElement();
+        UI.style.transformOrigin = new TransformOrigin(0, 0);
         UI.style.position = Position.Absolute;
+
+        RegenerateUI();
         
-
-
-        float w = CellSize.x * ItemSpace.Width;
-        float h = CellSize.y * ItemSpace.Height;
-
-
-        Image img = new Image()
-        {
-            sprite = image,
-            scaleMode = ScaleMode.StretchToFill
-        };
-        
-        img.style.width = w;
-        img.style.height = h;
-        UI.Add(img);
-
-        UI.style.width = w;
-        UI.style.height = h;
-        UI.style.backgroundColor = Color.red;
+        //UI.style.backgroundColor = Color.red;
         UI.RegisterCallback(new EventCallback<MouseDownEvent>(MouseDownCallback));
         UI.RegisterCallback(new EventCallback<MouseUpEvent>(MouseUpCallback));
 
-        InventoryPosition.ValueChanged += OnGridPositionUpdate;        
+                
     }
-
-
     /// <summary>
     /// Gets called whenever the grid position updates.
     /// </summary>
     /// <param name="newPosition"></param>
     internal void OnGridPositionUpdate(Vector2Int newPosition)
     {
-        UI.style.backgroundColor = ParentGrid.CanBePlaced(this) ? Color.green : Color.red;
-        Debug.Log(newPosition);
+        foreach (VisualElement ve in GridUI)
+        {
+            ve.style.unityBackgroundImageTintColor = ParentGrid.CanBePlaced(this) ? Color.green : Color.red;
+        }
+        //Debug.Log(newPosition);
     }
+
 
     /// <summary>
     /// What occurs when the user starts a grab.
@@ -313,34 +434,10 @@ public class InventoryItem : MonoBehaviour
         ParentGrid.SetActiveItem(null);
         ParentGrid.AddItem(this);
     }
-
-
-
-    private void Update()
-    {
-        if (Grabbed)
-        {
-            InventoryPosition.Value = ParentGrid.GridMousePosition;
-            UI.style.translate = ParentGrid.MousePosition;
-
-            //UI.style.translate = ParentGrid.TargetLocation - new Vector2(UI.style.width.value.value * 0.5f, UI.style.height.value.value * 0.5f);
-        }
-    }
+    #endregion
 
 }
 
 
-/// <summary>
-/// The orientation of an item.
-/// <br></br><br></br>
-/// When designing the item inside the Inspector, you are designing the item with the Up orientation.
-/// </summary>
-public enum InventoryItemOrientation
-{
-    Up = 0,
-    Right = 1,
-    Down = 2,
-    Left = 3,
-    
-}
+
 
