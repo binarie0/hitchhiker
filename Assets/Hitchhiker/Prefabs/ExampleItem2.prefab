@@ -45,9 +45,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryItem
   ItemSpace:
-    Width: 2
+    Width: 3
     Height: 2
-    Rows: 0300000003000000u
+    Rows: 0100000006000000u
   image: {fileID: 21300000, guid: b9505e419a14dda4ea399d26d5955f94, type: 3}
   inventoryID: 1
   StackUpdated:

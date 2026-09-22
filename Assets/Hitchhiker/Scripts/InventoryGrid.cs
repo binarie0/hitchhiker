@@ -17,7 +17,7 @@ public class InventoryGrid : MonoBehaviour
     /// The orientation and organization of the inventory itself. This has every available spot as true.
     /// </summary>
     [SerializeField]
-    public GridSpace InventorySpace;
+    private GridSpace InventorySpace;
 
     /// <summary>
     /// The available space left in the inventory. This has every available spot as true.

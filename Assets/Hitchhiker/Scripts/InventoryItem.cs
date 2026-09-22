@@ -17,7 +17,10 @@ public class InventoryItem : MonoBehaviour
     /// <summary>
     /// The current space that the item takes up.
     /// </summary>
-    internal GridSpace CurrentSpace;
+    internal GridSpace CurrentSpace
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// The image that the item will use to display.
@@ -26,12 +29,12 @@ public class InventoryItem : MonoBehaviour
     private Sprite image;
 
     /// <summary>
-    /// The user interface that will be shown in-game. Can be created by calling 
+    /// The user interface that will be shown in-game. Can be created by calling <see cref="GenerateUI(Vector2Int, InventorySettings)"/>.
     /// </summary>
     internal VisualElement UI
     {
         get; private set;
-    }
+    } = null;
 
     /// <summary>
     /// The icon inside this item. This is only set when <see cref="GenerateUI(Vector2Int, InventorySettings)"/> is called.
@@ -39,7 +42,7 @@ public class InventoryItem : MonoBehaviour
     internal Image Icon
     {
         get; private set;
-    }
+    } = null;
 
 
 
@@ -210,14 +213,21 @@ public class InventoryItem : MonoBehaviour
     {
         if (Grabbed)
         {
-            InventoryPosition.Value = ParentGrid.GridMousePosition;
-            UI.style.translate = ParentGrid.MousePosition;
+            SyncPositionWithGrid();
         }
     }
     #endregion
 
     #region Moving
 
+    /// <summary>
+    /// Syncs position with the parent grid
+    /// </summary>
+    internal void SyncPositionWithGrid()
+    {
+        InventoryPosition.Value = ParentGrid.GridMousePosition;
+        UI.style.translate = ParentGrid.MousePosition;
+    }
     /// <summary>
     /// Grabs this item. Sets the actiive item in the grid to this item.
     /// </summary>
