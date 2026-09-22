@@ -437,6 +437,8 @@ GameObject:
   - component: {fileID: 1910726473}
   - component: {fileID: 1910726469}
   - component: {fileID: 1910726475}
+  - component: {fileID: 1910726476}
+  - component: {fileID: 1910726477}
   m_Layer: 0
   m_Name: ExampleInventory
   m_TagString: Untagged
@@ -456,15 +458,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 991cbd83781940a41b16752e9f1b6d24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryGrid
-  DEBUG: 1
-  TestingObject: {fileID: 1503365573486324477, guid: a53e7ca4521148c498cec23526a37440, type: 3}
+  GridRendered:
+    m_PersistentCalls:
+      m_Calls: []
   InventorySpace:
     Width: 9
     Height: 5
     Rows: fe000000ff010000ff010000ff0000007e000000u
   BaseElementID: InventoryBase
-  SavePath: 
-  Config: {fileID: 11400000, guid: 9f36f454977b5fc4aa1c03afe8688504, type: 2}
+  config: {fileID: 11400000, guid: 9f36f454977b5fc4aa1c03afe8688504, type: 2}
 --- !u!224 &1910726473
 RectTransform:
   m_ObjectHideFlags: 0
@@ -542,6 +544,35 @@ PanelRenderer:
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_Position: 0
+--- !u!114 &1910726476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1910726467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66c412e0a4faf0344a80672fe11651b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventorySaver
+  LoadSavePath: 
+--- !u!114 &1910726477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1910726467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70be6fe30409d124da716d4a44cec1f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryItemCreator
+  TestingObjects:
+  - {fileID: 1503365573486324477, guid: a53e7ca4521148c498cec23526a37440, type: 3}
+  - {fileID: 1503365573486324477, guid: 3b35a592b1d2d734292be6c21ac955b7, type: 3}
+  - {fileID: 1503365573486324477, guid: e0974951de20a614fb08a1c84e151911, type: 3}
 --- !u!1 &1983940495
 GameObject:
   m_ObjectHideFlags: 0

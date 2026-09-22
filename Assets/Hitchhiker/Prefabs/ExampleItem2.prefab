@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4718680132388073228}
   - component: {fileID: 1672788506493801361}
   m_Layer: 0
-  m_Name: ExampleItem
+  m_Name: ExampleItem2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45,11 +45,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryItem
   ItemSpace:
-    Width: 3
+    Width: 2
     Height: 2
-    Rows: 0700000004000000u
-  image: {fileID: 21300000, guid: cfddf38e2d0fcbb40b169564fd58ea23, type: 3}
-  inventoryID: 0
+    Rows: 0300000003000000u
+  image: {fileID: 21300000, guid: b9505e419a14dda4ea399d26d5955f94, type: 3}
+  inventoryID: 1
   StackUpdated:
     m_PersistentCalls:
       m_Calls: []

@@ -10,7 +10,12 @@ public class InventorySettings : ScriptableObject
     [SerializeField]
     internal Color BackgroundColor = Color.black;
 
-
     [SerializeField]
-    internal bool Savable;
+    internal RotationDirection RotationDirection = RotationDirection.Clockwise;
+
+}
+
+public enum RotationDirection
+{
+    None, Clockwise, Counterclockwise
 }

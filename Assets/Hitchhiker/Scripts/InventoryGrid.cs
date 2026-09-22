@@ -1,17 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.Events;
 using UnityEngine.UIElements;
 using static UnityEngine.InputSystem.InputAction;
 [AddComponentMenu("Hitchhiker UI/Inventory Grid")]
 [RequireComponent(typeof(PanelRenderer))]
 public class InventoryGrid : MonoBehaviour
 {
+    #region Events & Delegates
 
-    public bool DEBUG = true;
-
-    [SerializeField]
-    private GameObject TestingObject;
+    public UnityEvent GridRendered = new UnityEvent();
+    #endregion
 
 
     /// <summary>
@@ -29,11 +28,7 @@ public class InventoryGrid : MonoBehaviour
         "can house every cell. This VisualElement can have children, as the grid will absolutely position the background.")]
     private string BaseElementID = "InventoryBase";
 
-    /// <summary>
-    /// If the inventory has a save path.
-    /// </summary>
-    [Tooltip("The save path.")]
-    public string SavePath;
+    
 
     /// <summary>
     /// The size that the cells are. Calculated on setup.
@@ -43,73 +38,107 @@ public class InventoryGrid : MonoBehaviour
         get; private set;
     }
 
-    [Tooltip("The configuration of the inventory. This is a required element for the Inventory to function!")]
-    public InventorySettings Config;
+    /// <summary>
+    /// The configuration of the inventory. This is a required element for the Inventory to function!
+    /// </summary>
+    public InventorySettings Config
+    {
+        get
+        {
+            return config;
+        }
+    }
 
 
-    internal VisualElement RootElement;
+    [Tooltip("The configuration of the inventory. This is a required element for the Inventory to function!"),
+        SerializeField]
+    private InventorySettings config;
+
+    /// <summary>
+    /// The root element of the UI hierarchy.
+    /// </summary>
+    internal VisualElement RootElement
+    {
+        get
+        {
+            return rootElement;
+        }
+    }
+    private VisualElement rootElement;
+
+    /// <summary>
+    /// The base element where all the inventory cells will be created.
+    /// </summary>
     private VisualElement InventoryBase;
 
+    /// <summary>
+    /// The current item in the inventory.
+    /// </summary>
     private InventoryItem CurrentItem;
 
+    /// <summary>
+    /// The mouse position in world space.
+    /// </summary>
     internal Vector2 MousePosition
     {
         get; private set;
     }
 
     /// <summary>
+    /// Gets the grid position that the mouse is currently over. This is compared to local space of <see cref="InventoryBase"/>
+    /// </summary>
+    /// <returns></returns>
+    public Vector2Int GridMousePosition
+    {
+        get
+        {
+
+            //convert world mouse coords to local inventory coords
+            Vector2 delta = rootElement.ChangeCoordinatesTo(InventoryBase, MousePosition);
+
+            int dx = Mathf.RoundToInt(delta.x / CellSize.x);
+            int dy = Mathf.RoundToInt(delta.y / CellSize.y);
+
+            //Debug.Log($"Delta: {delta}. grid DX: {dx}. grid DY: {dy}");
+            return new Vector2Int(dx, dy);
+        }
+    }
+    /// <summary>
     /// The items currently in the grid.
     /// </summary>
     private readonly List<InventoryItem> Items = new List<InventoryItem>();
     
+    /// <summary>
+    /// The panel renderer that will draw out the UI.
+    /// </summary>
     private PanelRenderer PanelRenderer;
+
+    #region Unity-provided Methods
+    /// <summary>
+    /// Called on start.
+    /// </summary>
     private void Start()
     {
+
+        //get our renderer
         PanelRenderer = GetComponent<PanelRenderer>();
+        
+        //when the renderer reloads, build our real UI.
         PanelRenderer.RegisterUIReloadCallback(OnUIReload);
 
+        //make a dupe to use as a space partition
         AvailableSpace = InventorySpace.Duplicate();
     }
 
+    #endregion
 
-    internal void SetActiveItem(InventoryItem item)
-    {
-        CurrentItem = item;
-    }
-
-    
+    #region Grid Visibility
     /// <summary>
     /// Toggles the visibility of the grid. Use <see cref="SetGridVisibility(bool)"/> if you want to manually open/close the inventory through code.
     /// </summary>
     public void ToggleGrid(CallbackContext _ctx)
     {
         SetGridVisibility(!gameObject.activeSelf);
-    }
-
-    /// <summary>
-    /// Rotates the active item in the inventory. Use <see cref="RotateActiveItem()"/> for a more direct call.
-    /// </summary>
-    /// <param name="_ctx"></param>
-    public void RotateActiveItem(CallbackContext _ctx)
-    {
-        if (_ctx.ReadValue<float>() == 1 && _ctx.performed)
-        {
-            Debug.Log("This is getting called!");
-            RotateActiveItem();
-        }
-    }
-
-    /// <summary>
-    /// Rotates the active item (the item being held) in the inventory.
-    /// </summary>
-    public void RotateActiveItem()
-    {
-        if (CurrentItem == null)
-            return;
-
-
-        CurrentItem.TurnClockwise();
-        Debug.Log("Turning current item clockwise!");
     }
 
     /// <summary>
@@ -120,6 +149,8 @@ public class InventoryGrid : MonoBehaviour
     {
         gameObject.SetActive(visible);
     }
+
+
     /// <summary>
     /// Opens the inventory if not already open.
     /// </summary>
@@ -130,27 +161,179 @@ public class InventoryGrid : MonoBehaviour
     /// </summary>
     public void CloseInventory() => SetGridVisibility(false);
 
+    #endregion
+
+    #region Adding / Removing Items
+
     /// <summary>
-    /// Gets the grid position that the mouse is currently over.
+    /// Returns whether this inventory can place the item at the specified position.
     /// </summary>
+    /// <param name="item"></param>
     /// <returns></returns>
-    public Vector2Int GridMousePosition
+    internal bool CanBePlaced(InventoryItem item)
     {
-        get
+        return AvailableSpace.CanAccommodate(item.CurrentSpace, item.InventoryPosition);
+    }
+
+    /// <summary>
+    /// Adds an item to the inventory. 
+    /// </summary>
+    /// <param name="item"></param>
+    public void AddItem(InventoryItem item)
+    {
+        Debug.Assert(item != null);
+
+        //if we cannot place the item then move back
+        if (!CanBePlaced(item))
         {
+            item.RevertPosition();
+        }
 
-            //convert world mouse coords to local inventory coords
-            Vector2 delta = RootElement.ChangeCoordinatesTo(InventoryBase, MousePosition);
+        item.UIPosition = ConvertToWorldSpace(item.InventoryPosition);
 
-            int dx = Mathf.RoundToInt(delta.x / CellSize.x);
-            int dy = Mathf.RoundToInt(delta.y / CellSize.y);
+        InventoryItem potentialMatch = Items.Find((i) => i.ItemID == item.ItemID);
+        if (potentialMatch && potentialMatch.Stackable)
+        {
+            potentialMatch.StackItem(item);
+            //check for alive-ness maybe?
 
-            //Debug.Log($"Delta: {delta}. grid DX: {dx}. grid DY: {dy}");
-            return new Vector2Int(dx, dy);
+        }
+        else
+        {
+            InitItem(item);
         }
     }
 
-    
+    /// <summary>
+    /// Sets up an item to be visually displayed in the inventory.
+    /// If the item does not need to reserve space (i.e. we are creating items in a junk drawer to the right of the inventory)
+    /// then we don't need to set up the item to reserve space.
+    /// </summary>
+    /// <param name="item"></param>
+    internal void InitItem(InventoryItem item, bool reserveSpace = true)
+    {
+
+        //add item to inventory
+        Items.Add(item);
+
+        if (reserveSpace)
+        {
+            item.SpaceReserved = true;
+            AvailableSpace.MarkSpaceAsReserved(item.CurrentSpace, item.InventoryPosition);
+        }
+
+        //setup required item parts
+        item.ParentGrid = this;
+        item.GenerateUI(CellSize, Config);
+
+        //add item to UI if we haven't already
+        if (!rootElement.Contains(item.UI))
+        {
+            rootElement.Add(item.UI);
+        }
+    }
+
+    /// <summary>
+    /// Removes an item from the inventory.
+    /// </summary>
+    /// <param name="item"></param>
+    public void RemoveItem(InventoryItem item)
+    {
+        Items.Remove(item);
+        //item.ParentGrid = null;
+        if (item.SpaceReserved)
+        {
+            AvailableSpace.UnreserveSpace(item.CurrentSpace, item.InventoryPosition);
+            item.SpaceReserved = false;
+        }
+    }
+
+    /// <summary>
+    /// Places the item in the nearest slot.
+    /// </summary>
+    /// <param name="item"></param>
+    public void PlaceNearest(InventoryItem item)
+    {
+        //TODO calculate the exact place to put the item
+        AddItem(item);
+    }
+
+    #endregion
+
+    #region Math Calculations
+
+    /// <summary>
+    /// Converts a grid space into world space coordinates.
+    /// </summary>
+    /// <param name="gridSpace"></param>
+    /// <returns></returns>
+    internal Vector2 ConvertToWorldSpace(Vector2Int gridSpace)
+    {
+        return InventoryBase.ChangeCoordinatesTo(rootElement, gridSpace * CellSize);
+    }
+    #endregion
+
+
+    #region Moving & Rotating of Items
+    /// <summary>
+    /// Sets the active item (for use of rotation for right now).
+    /// </summary>
+    /// <param name="item"></param>
+    internal void SetActiveItem(InventoryItem item)
+    {
+        CurrentItem = item;
+    }
+
+
+    #region Rotation
+
+    /// <summary>
+    /// Rotates the active item in the inventory. Use <see cref="RotateActiveItem()"/> for a more direct call.
+    /// </summary>
+    /// <param name="_ctx"></param>
+    public void RotateActiveItem(CallbackContext _ctx)
+    {
+
+        //if we just pressed the button, we can rotate
+        if (_ctx.ReadValueAsButton() && _ctx.performed)
+        {
+            RotateActiveItem();
+        }
+    }
+
+    /// <summary>
+    /// Rotates the active item (the item being held) in the inventory.
+    /// </summary>
+    public void RotateActiveItem()
+    {
+
+        //ignore if the user is pressing R for no reason
+        if (CurrentItem == null)
+            return;
+
+        switch (Config.RotationDirection)
+        {
+            case RotationDirection.None:
+                break;
+            case RotationDirection.Clockwise:
+                CurrentItem.TurnClockwise();
+                break;
+            case RotationDirection.Counterclockwise:
+                CurrentItem.TurnCounterclockwise();
+                break;
+            default:
+                Debug.Break();
+                break;
+        }
+
+
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Inventory & Item Rendering
 
     /// <summary>
     /// When the UI loads for the first time, this will be called.
@@ -161,15 +344,11 @@ public class InventoryGrid : MonoBehaviour
     private void OnUIReload(PanelRenderer panelRenderer, VisualElement rootElement, int version)
     {
 
-        RootElement = rootElement;
-        if (DEBUG)
-        {
-            Button spawnButton = new Button(SpawnItem) { text = "Spawn Inventory Item" };
-            RootElement.Add(spawnButton);
-        }
+        this.rootElement = rootElement;
+
 
         //get our root element
-        InventoryBase = RootElement.SearchByID(BaseElementID);
+        InventoryBase = this.rootElement.SearchByID(BaseElementID);
         Debug.Assert(InventoryBase != null, $"Unable to find the base of the inventory! Please make sure this is the correct ID: {BaseElementID}");
         
         
@@ -194,7 +373,7 @@ public class InventoryGrid : MonoBehaviour
         {
             for (uint y = 0; y < InventorySpace.Height; y++)
             {
-                if (InventorySpace.SpaceOccupied(y, x))
+                if (InventorySpace.SpaceOccupied(x, y))
                 {
 
                     Image i = CreateTileImage(x, y);
@@ -204,21 +383,14 @@ public class InventoryGrid : MonoBehaviour
             }
         }
 
-        RootElement.RegisterCallback(new EventCallback<MouseMoveEvent>(OnMouseMove));
+        //register global event and do not sync redraws
+        this.rootElement.RegisterCallback(new EventCallback<MouseMoveEvent>(OnMouseMove));
         PanelRenderer.UnregisterUIReloadCallback(OnUIReload);
+
+        GridRendered.Invoke();
     }
 
-    /// <summary>
-    /// Spawns a test item.
-    /// </summary>
-    private void SpawnItem()
-    {
-        GameObject o = Instantiate(TestingObject);
-        o.transform.parent = transform;
-        InitItem(o.GetComponent<InventoryItem>(), false);
-        //AddItem(o.GetComponent<InventoryItem>());
-        
-    }
+    
 
 
     private void OnMouseMove(MouseMoveEvent e)
@@ -226,29 +398,6 @@ public class InventoryGrid : MonoBehaviour
         MousePosition = e.localMousePosition - new Vector2(CellSize.x, CellSize.y) * 0.5f;
         
     }
-
-    
-
-    /// <summary>
-    /// Converts a grid space into world space coordinates.
-    /// </summary>
-    /// <param name="gridSpace"></param>
-    /// <returns></returns>
-    internal Vector2 ConvertToWorldSpace(Vector2Int gridSpace)
-    {
-        return InventoryBase.ChangeCoordinatesTo(RootElement, gridSpace * CellSize);
-    }
-
-    /// <summary>
-    /// Returns whether this inventory can place the item at the specified position.
-    /// </summary>
-    /// <param name="item"></param>
-    /// <returns></returns>
-    internal bool CanBePlaced(InventoryItem item)
-    {
-        return AvailableSpace.CanAccommodate(item.CurrentSpace, item.InventoryPosition);
-    }
-
 
     /// <summary>
     /// Creates an image to add to the background of the grid inventory system.
@@ -299,86 +448,9 @@ public class InventoryGrid : MonoBehaviour
         i.tintColor = Color.white;
     }
 
-    /// <summary>
-    /// Adds an item to the inventory. 
-    /// </summary>
-    /// <param name="item"></param>
-    public void AddItem(InventoryItem item)
-    {
-        if (item == null)
-        {
-            Debug.Log("Item is null!");
-            return;
-        }
-        
-        //if we cannot place the item then move back
-        if (!CanBePlaced(item))
-        {
-            item.RevertPosition();
-        }
+    #endregion
 
-        item.UIPosition = ConvertToWorldSpace(item.InventoryPosition);
-        
-        InventoryItem potentialMatch = Items.Find((i) => i.ItemID == item.ItemID);
-        if (potentialMatch && potentialMatch.Stackable)
-        {
-            potentialMatch.StackItem(item);
-            //check for alive-ness maybe?
-               
-        }
-        else
-        {
-            InitItem(item);
-        }
-    }
 
-    /// <summary>
-    /// Sets up an item to be visually displayed in the inventory.
-    /// </summary>
-    /// <param name="item"></param>
-    private void InitItem(InventoryItem item, bool reserveSpace = true)
-    {
-
-        //add item to inventory
-        Items.Add(item);
-
-        if (reserveSpace)
-        {
-            item.SpaceReserved = true;
-            AvailableSpace.MarkSpaceAsReserved(item.CurrentSpace, item.InventoryPosition);
-        }
-        
-        //setup required item parts
-        item.ParentGrid = this;
-        item.GenerateUI(CellSize, Config); 
-        
-        //add item to UI if we haven't already
-        if (!RootElement.Contains(item.UI))
-        {
-            RootElement.Add(item.UI);
-        }
-    }
-
-    /// <summary>
-    /// Removes an item from the inventory.
-    /// </summary>
-    /// <param name="item"></param>
-    public void RemoveItem(InventoryItem item)
-    {
-        Items.Remove(item);
-        //item.ParentGrid = null;
-        if (item.SpaceReserved)
-        {
-            AvailableSpace.UnreserveSpace(item.CurrentSpace, item.InventoryPosition);
-            item.SpaceReserved = false;
-        }
-    }
-
-    public void PlaceNearest(InventoryItem item)
-    {
-        //TODO calculate the exact place to put the item
-        AddItem(item);
-    }
 
 }
 

@@ -16,7 +16,7 @@ public class GridSpace
 
     /// <summary>
     /// The total width of the GridSpace. This has a max size of <see cref="MaxOneDimensionalSize"/> and a minimum size of 1.
-    /// This may not line up with the actual space the GridSpace takes up. See <see cref="Overlaps(GridSpace, Vector2Int, Vector2Int)"/>
+    /// This may not line up with the actual space the GridSpace takes up. See <see cref="CanAccommodate(GridSpace, Vector2Int)"/>
     /// to check whether GridSpaces overlap.
     /// </summary>
     [SerializeField, Range(1, MaxOneDimensionalSize)]
@@ -24,7 +24,7 @@ public class GridSpace
 
     /// <summary>
     /// The total height of the GridSpace. This has a max size of <see cref="MaxOneDimensionalSize"/> and a minimum size of 1.
-    /// This may not line up with the actual space the GridSpace takes up. See <see cref="Overlaps(GridSpace, Vector2Int, Vector2Int)"/>
+    /// This may not line up with the actual space the GridSpace takes up. See <see cref="CanAccommodate(GridSpace, Vector2Int)"/>
     /// to check whether GridSpaces overlap.
     /// </summary>
     [SerializeField, Range(1, MaxOneDimensionalSize)]
@@ -61,7 +61,7 @@ public class GridSpace
     /// <param name="row"></param>
     /// <param name="col"></param>
     /// <returns></returns>
-    public bool SpaceOccupied(uint row, uint col)
+    public bool SpaceOccupied(uint col, uint row)
     {
         if (row >= Height || col >= Width)
         {
@@ -189,6 +189,12 @@ public class GridSpace
         return e;
     }
 
+    /// <summary>
+    /// Rotates a grid space from an orientation to a different orientation. Used by <see cref="InventoryItem.TurnClockwise"/>.
+    /// </summary>
+    /// <param name="from"></param>
+    /// <param name="to"></param>
+    /// <returns></returns>
     public GridSpace Rotate(GridSpaceOrientation from, GridSpaceOrientation to)
     {
         if (from == to)
@@ -203,18 +209,22 @@ public class GridSpace
         }
         else
         {
-            GridSpace r = new GridSpace(Height, Width);
+            GridSpace r = new(Height, Width);
             for (uint row = 0; row < Height; row++)
             {
                 for (uint col = 0; col < Width; col++)
                 {
-                    r.SetCellValue(row, col, SpaceOccupied(Height - row - 1, Width - row - 1));
+                    r.SetCellValue(row, Width - col - 1, SpaceOccupied(Width - col - 1, Height - row - 1));
                 }
             }
             return f - t > 0 || (f - t < -2) ? r.Flip180() : r;
         }
     }
 
+    /// <summary>
+    /// Flips the grid space by 180*
+    /// </summary>
+    /// <returns></returns>
     private GridSpace Flip180()
     {
         GridSpace copy = new GridSpace(Width, Height);
@@ -222,7 +232,7 @@ public class GridSpace
         {
             for (uint col = 0; col < Width; col++)
             {
-                copy.SetCellValue(col, row, SpaceOccupied(Height - row - 1, Width - row - 1));
+                copy.SetCellValue(col, row, SpaceOccupied(Width - col - 1, Height - row - 1));
             }
         }
         return copy;
