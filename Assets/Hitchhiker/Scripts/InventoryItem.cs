@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
@@ -28,6 +29,14 @@ public class InventoryItem : MonoBehaviour
     /// The user interface that will be shown in-game. Can be created by calling 
     /// </summary>
     internal VisualElement UI
+    {
+        get; private set;
+    }
+
+    /// <summary>
+    /// The icon inside this item. This is only set when <see cref="GenerateUI(Vector2Int, InventorySettings)"/> is called.
+    /// </summary>
+    internal Image Icon
     {
         get; private set;
     }
@@ -170,8 +179,14 @@ public class InventoryItem : MonoBehaviour
     /// </summary>
     internal Observer<Vector2Int> InventoryPosition;
 
+    /// <summary>
+    /// The previous position of this item.
+    /// </summary>
     private Vector2Int PreviousPosition;
 
+    /// <summary>
+    /// All grid items in the background of the UI.
+    /// </summary>
     private List<VisualElement> GridUI = new List<VisualElement>();
 
     /// <summary>
@@ -198,6 +213,32 @@ public class InventoryItem : MonoBehaviour
             InventoryPosition.Value = ParentGrid.GridMousePosition;
             UI.style.translate = ParentGrid.MousePosition;
         }
+    }
+    #endregion
+
+    #region Moving
+
+    /// <summary>
+    /// Grabs this item. Sets the actiive item in the grid to this item.
+    /// </summary>
+    internal void GrabItem()
+    {
+        Grabbed = true;
+        PreviousPosition = InventoryPosition;
+        Icon.style.backgroundColor = new Color(0, 0, 0, 0.2f);
+        ParentGrid.SetActiveItem(this);
+        ParentGrid.RemoveItem(this);
+    }
+
+    /// <summary>
+    /// Lets go of this item. Sets the active item in the grid to null.
+    /// </summary>
+    internal void LetGoOfItem()
+    {
+        Grabbed = false;
+        Icon.style.backgroundColor = new Color(0, 0, 0, 0);
+        ParentGrid.SetActiveItem(null);
+        ParentGrid.AddItem(this);
     }
     #endregion
 
@@ -284,6 +325,9 @@ public class InventoryItem : MonoBehaviour
         ParentGrid.RootElement.Add(UI);
     }
 
+    /// <summary>
+    /// Reverts the item's position. This is called by <see cref="InventoryGrid.AddItem(InventoryItem)"/> if the position is invalid.
+    /// </summary>
     internal void RevertPosition()
     {
         InventoryPosition.Value = PreviousPosition;
@@ -337,32 +381,46 @@ public class InventoryItem : MonoBehaviour
         float imgw = CellSize.x * ItemSpace.Width;
         float imgh = CellSize.y * ItemSpace.Height;
 
+        Vector2 imgPosition = new Vector2(imgw, imgh);
+
         float w = CellSize.x * CurrentSpace.Width;
         float h = CellSize.y * CurrentSpace.Height;
 
-        Image img = new Image()
+        Vector2 itemPosition = new Vector2(w, h);
+
+
+
+        //creates icon in original orientation and rotates it
+        Icon = new Image()
         {
             sprite = image,
             scaleMode = ScaleMode.StretchToFill,
             
         };
+        Icon.style.width = imgw;
+        Icon.style.position = Position.Absolute;
+        Icon.style.height = imgh;
+        Icon.style.rotate = new StyleRotate(new Angle((int)Orientation * Mathf.PI*0.5f, AngleUnit.Radian));
 
-        
-        img.style.width = imgw;
-        img.style.height = imgh;
-        img.style.rotate = new StyleRotate(new Angle((int)Orientation * Mathf.PI*0.5f, AngleUnit.Radian));
+        //this is necessary to avoid offset issues for rendering.
+        Icon.style.translate = (itemPosition - imgPosition) * 0.5f;
 
-        //if the orientation does not align properly and we are on an odd rotation, the image for some reason gets offset
-        //weirdly. This fixes that visual bug.
-        if (imgw != imgh && (int)Orientation % 2 == 1)
-        {
-            img.style.translate = new Translate(-CellSize.x * 0.5f, CellSize.y * 0.5f);
-        }
-        UI.Add(img);
+        ////if the orientation does not align properly and we are on an odd rotation, the image for some reason gets offset
+        ////weirdly. This fixes that visual bug.
+        //if (imgw != imgh && (int)Orientation % 2 == 1)
+        //{
+        //    Icon.style.translate = new Translate(-CellSize.x * 0.5f, CellSize.y * 0.5f);
+        //}
+        UI.Add(Icon);
 
         UI.style.width = w;
         UI.style.height = h;
         InventoryPosition.EmitChanged();
+
+        if (Grabbed)
+        {
+            GrabItem();
+        }
 
     }
     /// <summary>
@@ -410,18 +468,13 @@ public class InventoryItem : MonoBehaviour
         //Debug.Log(newPosition);
     }
 
-
     /// <summary>
     /// What occurs when the user starts a grab.
     /// </summary>
     /// <param name="_mup"></param>
     private void MouseDownCallback(MouseDownEvent _mup)
     {
-        Grabbed = true;
-        PreviousPosition = InventoryPosition;
-
-        ParentGrid.SetActiveItem(this);
-        ParentGrid.RemoveItem(this);
+        GrabItem();
     }
 
     /// <summary>
@@ -430,9 +483,7 @@ public class InventoryItem : MonoBehaviour
     /// <param name="_mup"></param>
     private void MouseUpCallback(MouseUpEvent _mup)
     {
-        Grabbed = false;
-        ParentGrid.SetActiveItem(null);
-        ParentGrid.AddItem(this);
+        LetGoOfItem();
     }
     #endregion
 
