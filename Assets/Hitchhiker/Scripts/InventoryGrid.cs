@@ -244,8 +244,8 @@ public class InventoryGrid : MonoBehaviour
         if (item.SpaceReserved)
         {
             AvailableSpace.UnreserveSpace(item.CurrentSpace, item.InventoryPosition);
-            item.SpaceReserved = false;
         }
+        item.SpaceReserved = false;
     }
 
     /// <summary>
