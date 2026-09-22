@@ -163,6 +163,42 @@ public class InventoryGrid : MonoBehaviour
 
     #endregion
 
+    #region Queries
+
+    /// <summary>
+    /// Gets the item associated with a specified position.
+    /// </summary>
+    /// <param name="position"></param>
+    /// <returns></returns>
+    internal InventoryItem GetItem(Vector2Int position)
+    {
+        if (AvailableSpace[position])
+        {
+            return null;
+        }
+
+        GridSpace i = new GridSpace();
+        i.SetCellValue(0, 0, true);
+
+        //get relative position for each and check against it
+        foreach (InventoryItem item in Items)
+        {
+            Vector2Int delta = position - item.InventoryPosition;
+            
+            //check whether this item can accommodate a 1x1
+            if (item.CurrentSpace.CanAccommodate(i, delta))
+            {
+                
+                return item;
+            }
+        }
+        return null;
+
+    }
+    
+
+    #endregion
+
     #region Adding / Removing Items
 
     /// <summary>
@@ -172,7 +208,18 @@ public class InventoryGrid : MonoBehaviour
     /// <returns></returns>
     internal bool CanBePlaced(InventoryItem item)
     {
+        Debug.Assert(item != null);
+        Debug.Assert(item.CurrentSpace != null);
         return AvailableSpace.CanAccommodate(item.CurrentSpace, item.InventoryPosition);
+    }
+
+
+    private bool CanBeCombined(InventoryItem left, InventoryItem right)
+    {
+        if (left == null || right == null)
+            return false;
+
+        return left.Stackable && right.Stackable && left.ItemID == right.ItemID;
     }
 
     /// <summary>
@@ -183,18 +230,23 @@ public class InventoryGrid : MonoBehaviour
     {
         Debug.Assert(item != null);
 
+        InventoryItem potentialMatch = GetItem(item.InventoryPosition);
         //if we cannot place the item then move back
-        if (!CanBePlaced(item))
+        if (!CanBePlaced(item) && !CanBeCombined(item, potentialMatch))
         {
             item.RevertPosition();
+
+            //requery
+            potentialMatch = GetItem(item.InventoryPosition);
+
         }
 
         item.UIPosition = ConvertToWorldSpace(item.InventoryPosition);
 
-        InventoryItem potentialMatch = Items.Find((i) => i.ItemID == item.ItemID);
-        if (potentialMatch && potentialMatch.Stackable)
+        
+        if (CanBeCombined(item, potentialMatch))
         {
-            potentialMatch.StackItem(item);
+            item.StackInto(potentialMatch);
             //check for alive-ness maybe?
 
         }
@@ -453,6 +505,5 @@ public class InventoryGrid : MonoBehaviour
 
 
 }
-
 
 

@@ -13,6 +13,9 @@ public class InventorySettings : ScriptableObject
     [SerializeField]
     internal RotationDirection RotationDirection = RotationDirection.Clockwise;
 
+    [SerializeField, Range(20, 99)]
+    internal int FontSize = 20;
+
 }
 
 public enum RotationDirection

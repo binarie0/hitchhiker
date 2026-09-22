@@ -4,6 +4,13 @@ using UnityEngine;
 /// <summary>
 /// A GridSpace is a spacial area that an item can take up.
 /// This has as visual editor inside the Inspector that should be used to interface with the setup of the object.
+/// <br></br>
+/// <br></br>
+/// Note: all inputs are in column-major order in alignment with <see cref="Vector2Int.x"/>, <see cref="Vector2Int.y"/>.
+/// <br></br>
+/// <br></br>
+/// To continue, all indexes are zero-based, so the range of any row input will be [0 - <see cref="Height"/>)
+/// and the range of any column input will be [0 - <see cref="Width"/>)
 /// </summary>
 [Serializable]
 public class GridSpace
@@ -31,16 +38,16 @@ public class GridSpace
     public uint Height = 1;
 
     /// <summary>
-    /// The rows that the GridSpace takes up. These are stored in the bits of a uint array.
+    /// The rows that the GridSpace takes up. Cells are stored in the bits of a uint array.
     /// </summary>
     [SerializeField]
     private uint[] Rows = { 0u };
 
+    /// <summary>
+    /// A default public constructor to be used by Unity when creating GridSpace objects. This sets the width and height to 1 automatically.
+    /// </summary>
+    public GridSpace(): this(1,1) { }
 
-    public GridSpace()
-    {
-
-    }
     /// <summary>
     /// Creates a new GridSpace given a set width and height.
     /// </summary>
@@ -56,11 +63,11 @@ public class GridSpace
 
 
     /// <summary>
-    /// Checks whether the space is occupied at the row and column specified
+    /// Checks whether the space is occupied at the row and column specified.
     /// </summary>
+    /// <param name="col">The column to check. This is zero-indexed.</param>
     /// <param name="row"></param>
-    /// <param name="col"></param>
-    /// <returns></returns>
+    /// <returns>The bit value at <paramref name="col"/>,<paramref name="row"/>. </returns>
     public bool SpaceOccupied(uint col, uint row)
     {
         if (row >= Height || col >= Width)
@@ -70,15 +77,87 @@ public class GridSpace
         return (Rows[row] & (1 << (int)col)) != 0;
     }
 
+    /// <summary>
+    /// Gets or sets the underlying bits of this GridSpace via the indexer.
+    /// <br></br>
+    /// For get, this function passes along the value returned by <see cref="SpaceOccupied(uint, uint)"/>.
+    /// <br></br>
+    /// For set, this function passes along the value specified to <see cref="SetCellValue(uint, uint, bool)"/>
+    /// </summary>
+    /// <param name="col">The column (x-axis) to edit.</param>
+    /// <param name="row">The row (y-axis) to edit.</param>
+    /// <returns>The bit value at <paramref name="col"/>,<paramref name="row"/>. </returns>
+    public bool this[uint col, uint row]
+    {
+        get
+        {
+            return SpaceOccupied(col, row);
+        }
+        set
+        {
+            SetCellValue(col, row, value);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the underlying bits of this GridSpace via the indexer.
+    /// <br></br>
+    /// For get, this function passes along the value returned by <see cref="SpaceOccupied(Vector2Int)"/>.
+    /// <br></br>
+    /// For set, this function passes along the value specified to <see cref="SetCellValue(Vector2Int, bool)"/>
+    /// </summary>
+    /// <param name="pos">The position (x, y) to check.</param>
+    /// <returns>The bit value at the position specified. </returns>
+    public bool this[Vector2Int pos]
+    {
+        get
+        {
+            return SpaceOccupied(pos);
+        }
+        set
+        {
+            SetCellValue(pos, value);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the underlying bits of this GridSpace via the indexer.
+    /// <br></br>
+    /// For get, this function passes along the value returned by <see cref="SpaceOccupied(uint, uint)"/>.
+    /// <br></br>
+    /// For set, this function passes along the value specified to <see cref="SetCellValue(uint, uint, bool)"/>
+    /// </summary>
+    /// <param name="col">The column (x-axis) to edit.</param>
+    /// <param name="row">The row (y-axis) to edit.</param>
+    /// <returns>The bit value at <paramref name="col"/>,<paramref name="row"/>. </returns>
+    public bool this[int col, int row]
+    {
+        get
+        {
+            return SpaceOccupied((uint)col, (uint)row);
+        }
+        set
+        {
+            SetCellValue((uint)col, (uint)row, value);
+        }
+    }
+
+    /// <summary>
+    /// Checks whether the space is occupied at the position specified. Under the hood, this calls <see cref="SpaceOccupied(uint, uint)"/>.
+    /// </summary>
+    /// <param name="position">The position to check. This is zero-indexed.</param>
+    /// <returns></returns>
+    public bool SpaceOccupied(Vector2Int position) => SpaceOccupied((uint)position.x, (uint)position.y);
+
     
     
 
     /// <summary>
     /// Checks whether this grid space can accommodate <paramref name="other"/> with a <paramref name="delta"/> offset.
     /// </summary>
-    /// <param name="other"></param>
+    /// <param name="other">The other gridspace to check against. If other is larger than this object, then this check automatically returns false</param>
     /// <param name="delta"></param>
-    /// <returns></returns>
+    /// <returns>A boolean that determines whether all bit checks have been satisfied. If this returns true, then <see cref="MarkSpaceAsReserved(GridSpace, Vector2Int)"/> is available.</returns>
     internal bool CanAccommodate(GridSpace other, Vector2Int delta)
     {
         //simple bounds check
@@ -103,10 +182,11 @@ public class GridSpace
     }
 
     /// <summary>
-    /// Marks all space that the reserved space takes up as not free.
+    /// Marks all space that the reserved space takes up as not free. This sets all bits of overlap to false,
+    /// meaning subsequent checks of that space will return false in <see cref="CanAccommodate(GridSpace, Vector2Int)"/>.
     /// </summary>
-    /// <param name="reservedSpace"></param>
-    /// <param name="delta"></param>
+    /// <param name="reservedSpace">The space to reserve. The space to reserve must be contained by this object.</param>
+    /// <param name="delta">The offset to use when marking the space as reserved.</param>
     internal void MarkSpaceAsReserved(GridSpace reservedSpace, Vector2Int delta)
     {
         if (!CanAccommodate(reservedSpace, delta))
@@ -124,10 +204,10 @@ public class GridSpace
     }
 
     /// <summary>
-    /// Sets a cell's values directly.
+    /// Sets a cell's value directly.
     /// </summary>
-    /// <param name="location"></param>
-    /// <param name="on"></param>
+    /// <param name="location">The offset to use. If the location is not contained within the bounds of this grid space, nothing happens.</param>
+    /// <param name="on">Whether the cell should be on (available for reservation) or off (reserved)</param>
     internal void SetCellValue(Vector2Int location, bool on)
     {
         if (location.x < 0
@@ -148,6 +228,12 @@ public class GridSpace
         }
     }
 
+    /// <summary>
+    /// Sets a cell's value directly.
+    /// </summary>
+    /// <param name="col"></param>
+    /// <param name="row"></param>
+    /// <param name="on"></param>
     internal void SetCellValue(uint col, uint row, bool on)
     {
         SetCellValue(new Vector2Int((int)col, (int)row), on);
@@ -160,8 +246,9 @@ public class GridSpace
     /// <param name="delta"></param>
     internal void UnreserveSpace(GridSpace reservedSpace, Vector2Int delta)
     {
+        
         //check every row
-        for (int rowIndex = delta.y; rowIndex < delta.y + reservedSpace.Height; rowIndex++)
+        for (int rowIndex = Mathf.Max(delta.y, 0); rowIndex < delta.y + reservedSpace.Height; rowIndex++)
         {
             //shift the column over
             uint row = reservedSpace.Rows[rowIndex - delta.y] << delta.x;

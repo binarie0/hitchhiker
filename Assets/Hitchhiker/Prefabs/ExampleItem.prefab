@@ -49,10 +49,5 @@ MonoBehaviour:
     Height: 1
     Rows: 03000000u
   image: {fileID: 21300000, guid: cfddf38e2d0fcbb40b169564fd58ea23, type: 3}
-  inventoryID: 0
-  StackUpdated:
-    m_PersistentCalls:
-      m_Calls: []
-  ItemDestroyed:
-    m_PersistentCalls:
-      m_Calls: []
+  itemID: item1
+  maxCount: 1

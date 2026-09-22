@@ -2,7 +2,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 
 [RequireComponent(typeof(InventoryGrid))]
-[AddComponentMenu("Hitchhiker UI/Inventory Saver/Loader")]
+[AddComponentMenu("Hitchhiker UI/Inventory Saver & Loader")]
 public class InventorySaver : MonoBehaviour
 {
     /// <summary>

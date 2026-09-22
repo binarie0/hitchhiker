@@ -76,24 +76,22 @@ public class InventoryItem : MonoBehaviour
     /// The ID associated with this item. This is used to associate items of the same type.
     /// </summary>
     [SerializeField, Tooltip("The item ID associated with this Item. This is used to associate items of the same type.")]
-    private int inventoryID;
+    private string itemID;
 
     /// <summary>
-    /// The item ID associated with this Item.
+    /// The ID associated with this item. This is used to associate items of the same type.
     /// </summary>
-    internal int ItemID
+    internal string ItemID
     {
-        get
-        {
-            return inventoryID;
-        }
+        get => itemID;
     }
+    
 
     /// <summary>
     /// The maximum amount of items that can be stacked for this item. If set to 1, the item is not stackable.
     /// </summary>
     [Tooltip("The maximum amount of items that can be stacked for this item. If set to 1, the item is not stackable.\nNote: the max count range can be arbitrarily increased by editing the source code."),
-        Range(1, 99)]
+        Range(1, 99), SerializeField]
     private int maxCount = 1;
 
     /// <summary>
@@ -108,7 +106,7 @@ public class InventoryItem : MonoBehaviour
     }
 
 
-    private int stackCount = 1;
+    private Observer<int> stackCount = 1;
 
     /// <summary>
     /// The amount of items in this stack.
@@ -117,7 +115,11 @@ public class InventoryItem : MonoBehaviour
     {
         get
         {
-            return stackCount;
+            return stackCount.Value;
+        }
+        set
+        {
+            stackCount.Value = value;
         }
     }
 
@@ -136,16 +138,6 @@ public class InventoryItem : MonoBehaviour
     }
 
 
-
-    /// <summary>
-    /// Gets called whenever the amount of items in the stack has been updated.
-    /// </summary>
-    public UnityEvent<int> StackUpdated = new();
-
-    /// <summary>
-    /// Gets called when the item should be destroyed.
-    /// </summary>
-    public UnityEvent ItemDestroyed = new();
 
     /// <summary>
     /// The grid that this item is contained in. 
@@ -180,7 +172,7 @@ public class InventoryItem : MonoBehaviour
     /// <summary>
     /// The position of the item inside the inventory.
     /// </summary>
-    internal Observer<Vector2Int> InventoryPosition;
+    internal Observer<Vector2Int> InventoryPosition = Vector2Int.zero;
 
     /// <summary>
     /// The previous position of this item.
@@ -215,6 +207,11 @@ public class InventoryItem : MonoBehaviour
         {
             SyncPositionWithGrid();
         }
+    }
+
+    private void OnDestroy()
+    {
+        UI.RemoveFromHierarchy();   
     }
     #endregion
 
@@ -290,38 +287,33 @@ public class InventoryItem : MonoBehaviour
 
     #region Stacking
     /// <summary>
-    /// Stacks a like item onto this item.
+    /// Stacks a like item onto this item. Destroys this item if its 
     /// </summary>
     /// <param name="item"></param>
     /// <returns></returns>
-    public void StackItem(InventoryItem item)
+    public void StackInto(InventoryItem item)
     {
-
-        //asserts same id (same item)
-        Debug.Assert(ItemID == item.ItemID);
-        Debug.Assert(Stackable && item.Stackable);
-
         // if we are already at capacity then can't do anything
         if (StackCount == MaxCount)
             //might want to emit an event here?
             return;
 
-        //add the other stack to this one
-        stackCount += item.StackCount;
-        int overflow = 0;
-        if (stackCount > MaxCount)
-        {
-            overflow = stackCount - MaxCount;
-            stackCount = MaxCount;
-        }
-        item.stackCount = overflow;
+        int thisCount = StackCount;
+        int otherCount = item.StackCount;
 
-        this.StackUpdated.Invoke(stackCount);
-        item.StackUpdated.Invoke(stackCount);
-        if (item.stackCount < 1)
+        item.StackCount += thisCount;
+        if (item.StackCount > item.MaxCount)
         {
-            item.ItemDestroyed.Invoke();
+            int overflow = item.StackCount - item.MaxCount;
+            this.StackCount = overflow;
         }
+        else
+        {
+            this.StackCount = 0;
+            Destroy(this.gameObject);
+        }
+
+
     }
 
     #endregion
@@ -407,6 +399,7 @@ public class InventoryItem : MonoBehaviour
             scaleMode = ScaleMode.StretchToFill,
             
         };
+        
         Icon.style.width = imgw;
         Icon.style.position = Position.Absolute;
         Icon.style.height = imgh;
@@ -414,14 +407,38 @@ public class InventoryItem : MonoBehaviour
 
         //this is necessary to avoid offset issues for rendering.
         Icon.style.translate = (itemPosition - imgPosition) * 0.5f;
-
-        ////if the orientation does not align properly and we are on an odd rotation, the image for some reason gets offset
-        ////weirdly. This fixes that visual bug.
-        //if (imgw != imgh && (int)Orientation % 2 == 1)
-        //{
-        //    Icon.style.translate = new Translate(-CellSize.x * 0.5f, CellSize.y * 0.5f);
-        //}
         UI.Add(Icon);
+
+
+        //item stack text
+        if (Stackable)
+        {
+            Label stackCountLabel = new Label();
+            stackCount = new Observer<int>(stackCount.Value, (stack) =>
+            {
+                stackCountLabel.text = stackCount.Value.ToString();
+                //TODO: add a different color indication for when this item is maxxed.
+            });
+            stackCountLabel.style.backgroundColor = new Color(0, 0, 0, 1f);
+            stackCountLabel.style.position = Position.Absolute;
+            stackCountLabel.style.color = new Color(1, 1, 1, 1);
+            stackCountLabel.style.unityTextAlign = TextAnchor.UpperRight;
+            stackCountLabel.style.transformOrigin = new TransformOrigin(0, 0);
+            stackCountLabel.style.translate = new Translate(w * 0.5f, h - Config.FontSize * 1.5f);
+            stackCountLabel.style.fontSize = Config.FontSize;
+            stackCountLabel.style.paddingRight = Config.FontSize * 0.25f;
+            stackCountLabel.style.width = w * 0.5f;
+            stackCountLabel.style.height = Config.FontSize * 1.5f;
+            
+            
+            UI.Add(stackCountLabel);
+            stackCount.EmitChanged();
+
+
+        }
+
+
+
 
         UI.style.width = w;
         UI.style.height = h;
@@ -471,13 +488,20 @@ public class InventoryItem : MonoBehaviour
     /// <param name="newPosition"></param>
     internal void OnGridPositionUpdate(Vector2Int newPosition)
     {
+        InventoryItem potentialStacker = ParentGrid.GetItem(newPosition);
+        //Debug.Log(potentialStacker?.ItemID ?? "No item at this position");
+        Color c = ParentGrid.CanBePlaced(this) ? Color.green :
+            potentialStacker != null && potentialStacker.ItemID == ItemID ?
+            Color.blue : Color.red;
+
         foreach (VisualElement ve in GridUI)
         {
-            ve.style.unityBackgroundImageTintColor = ParentGrid.CanBePlaced(this) ? Color.green : Color.red;
+            ve.style.unityBackgroundImageTintColor = c;
         }
         //Debug.Log(newPosition);
     }
 
+    
     /// <summary>
     /// What occurs when the user starts a grab.
     /// </summary>
@@ -496,6 +520,8 @@ public class InventoryItem : MonoBehaviour
         LetGoOfItem();
     }
     #endregion
+
+    
 
 }
 
