@@ -22,7 +22,10 @@ public class InventoryGrid : MonoBehaviour
     /// <summary>
     /// The available space left in the inventory. This has every available spot as true.
     /// </summary>
-    internal GridSpace AvailableSpace;
+    internal GridSpace AvailableSpace
+    {
+        get; private set;
+    }
 
     [SerializeField, Tooltip("If specifying a custom layout in the Panel Renderer, this should point to a VisualElement that" +
         "can house every cell. This VisualElement can have children, as the grid will absolutely position the background.")]

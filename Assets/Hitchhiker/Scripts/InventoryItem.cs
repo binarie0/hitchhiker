@@ -491,7 +491,7 @@ public class InventoryItem : MonoBehaviour
         InventoryItem potentialStacker = ParentGrid.GetItem(newPosition);
         //Debug.Log(potentialStacker?.ItemID ?? "No item at this position");
         Color c = ParentGrid.CanBePlaced(this) ? Color.green :
-            potentialStacker != null && potentialStacker.ItemID == ItemID ?
+            potentialStacker != null && Stackable && potentialStacker.ItemID == ItemID ?
             Color.blue : Color.red;
 
         foreach (VisualElement ve in GridUI)

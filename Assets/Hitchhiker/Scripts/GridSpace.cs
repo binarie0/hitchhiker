@@ -285,7 +285,7 @@ public class GridSpace
     public GridSpace Rotate(GridSpaceOrientation from, GridSpaceOrientation to)
     {
         if (from == to)
-            return this;
+            return this.Duplicate();
 
         int f = (int)from;
         int t = (int)to;
