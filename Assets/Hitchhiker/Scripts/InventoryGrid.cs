@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
-using static UnityEngine.InputSystem.InputAction;
+
 [AddComponentMenu("Hitchhiker UI/Inventory Grid")]
 [RequireComponent(typeof(PanelRenderer))]
 public class InventoryGrid : MonoBehaviour
@@ -31,7 +31,7 @@ public class InventoryGrid : MonoBehaviour
         "can house every cell. This VisualElement can have children, as the grid will absolutely position the background.")]
     private string BaseElementID = "InventoryBase";
 
-    
+
 
     /// <summary>
     /// The size that the cells are. Calculated on setup.
@@ -39,7 +39,7 @@ public class InventoryGrid : MonoBehaviour
     public Vector2Int CellSize
     {
         get; private set;
-    }
+    } = Vector2Int.zero;
 
     /// <summary>
     /// The configuration of the inventory. This is a required element for the Inventory to function!
@@ -123,14 +123,23 @@ public class InventoryGrid : MonoBehaviour
     private void Start()
     {
 
-        //get our renderer
-        PanelRenderer = GetComponent<PanelRenderer>();
-        
-        //when the renderer reloads, build our real UI.
-        PanelRenderer.RegisterUIReloadCallback(OnUIReload);
 
         //make a dupe to use as a space partition
         AvailableSpace = InventorySpace.Duplicate();
+        //get our renderer
+        PanelRenderer = GetComponent<PanelRenderer>();
+        
+        
+        StartCoroutine(LoadUI());
+
+    }
+
+    private System.Collections.IEnumerator LoadUI()
+    {
+        yield return new WaitForFixedUpdate();
+
+        //when the renderer reloads, build our real UI.
+        PanelRenderer.RegisterUIReloadCallback(OnUIReload);
     }
 
     #endregion
@@ -139,7 +148,7 @@ public class InventoryGrid : MonoBehaviour
     /// <summary>
     /// Toggles the visibility of the grid. Use <see cref="SetGridVisibility(bool)"/> if you want to manually open/close the inventory through code.
     /// </summary>
-    public void ToggleGrid(CallbackContext _ctx)
+    public void ToggleGrid(UnityEngine.InputSystem.InputAction.CallbackContext _ctx)
     {
         SetGridVisibility(!gameObject.activeSelf);
     }
@@ -346,7 +355,7 @@ public class InventoryGrid : MonoBehaviour
     /// Rotates the active item in the inventory. Use <see cref="RotateActiveItem()"/> for a more direct call.
     /// </summary>
     /// <param name="_ctx"></param>
-    public void RotateActiveItem(CallbackContext _ctx)
+    public void RotateActiveItem(UnityEngine.InputSystem.InputAction.CallbackContext _ctx)
     {
 
         //if we just pressed the button, we can rotate
@@ -398,18 +407,30 @@ public class InventoryGrid : MonoBehaviour
     /// <param name="version"></param>
     private void OnUIReload(PanelRenderer panelRenderer, VisualElement rootElement, int version)
     {
-
+        PanelRenderer.UnregisterUIReloadCallback(OnUIReload);
         this.rootElement = rootElement;
-
+        
 
         //get our root element
         InventoryBase = this.rootElement.SearchByID(BaseElementID);
-        Debug.Assert(InventoryBase != null, $"Unable to find the base of the inventory! Please make sure this is the correct ID: {BaseElementID}");
+        InventoryBase.RegisterCallback(new EventCallback<GeometryChangedEvent>(AfterCalculations));
         
-        
+    }
+
+    private void AfterCalculations(GeometryChangedEvent e)
+    {
+        if (CellSize != Vector2Int.zero)
+        {
+            return;
+        }
+
+        Background celltexture = Background.FromTexture2D(Config.CellTexture);
+
+
+
         //draw our content
         Rect r = InventoryBase.contentRect;
-
+        Debug.Assert(r.size != Vector2.zero);
         //calculate proper cell size
         int cellsizex = (int)(r.width / InventorySpace.Width);
         int cellsizey = (int)(r.height / InventorySpace.Height);
@@ -420,9 +441,9 @@ public class InventoryGrid : MonoBehaviour
         {
             InventoryBase.style.width = CellSize.x * InventorySpace.Width;
             InventoryBase.style.height = CellSize.y * InventorySpace.Height;
-            Debug.Log($"Inventory has been auto-resized to keep aspect ratio. New size: {InventoryBase.contentRect.size}");
+            //Debug.Log($"Inventory has been auto-resized to keep aspect ratio. New size: {InventoryBase.contentRect.size}");
         }
-        
+
         //create tiles for the proper spaces
         for (uint x = 0; x < InventorySpace.Width; x++)
         {
@@ -431,7 +452,7 @@ public class InventoryGrid : MonoBehaviour
                 if (InventorySpace.SpaceOccupied(x, y))
                 {
 
-                    Image i = CreateTileImage(x, y);
+                    VisualElement i = CreateTileImage(x, y, celltexture);
                     InventoryBase.Add(i);
                 }
 
@@ -440,12 +461,12 @@ public class InventoryGrid : MonoBehaviour
 
         //register global event and do not sync redraws
         this.rootElement.RegisterCallback(new EventCallback<MouseMoveEvent>(OnMouseMove));
-        PanelRenderer.UnregisterUIReloadCallback(OnUIReload);
+
 
         GridRendered.Invoke();
     }
 
-    
+
 
 
     private void OnMouseMove(MouseMoveEvent e)
@@ -460,12 +481,12 @@ public class InventoryGrid : MonoBehaviour
     /// <param name="col"></param>
     /// <param name="row"></param>
     /// <returns></returns>
-    private Image CreateTileImage(float col, float row, bool addCallbacks = true)
+    private VisualElement CreateTileImage(float col, float row, Background background, bool addCallbacks = true)
     {
-        Image i = new Image
-        {
-            sprite = Config.CellTexture
-        };
+
+        Image i = new Image();
+        
+        i.style.backgroundImage = background;
         if (addCallbacks)
         {
             i.RegisterCallback(new EventCallback<MouseOverEvent>(OnMouseOverBackgroundImageCallback));
@@ -473,10 +494,9 @@ public class InventoryGrid : MonoBehaviour
         }
         i.style.position = Position.Absolute;
         i.style.backgroundColor = Config.BackgroundColor;
-        i.style.top = CellSize.y * row;
+        i.style.translate = new Translate(CellSize.x * col, CellSize.y * row);
         i.style.width = CellSize.x;
         i.style.height = CellSize.y;
-        i.style.left = CellSize.x * col;
         return i;
     }
 
@@ -488,8 +508,8 @@ public class InventoryGrid : MonoBehaviour
     /// <param name="e"></param>
     private void OnMouseOverBackgroundImageCallback(MouseOverEvent e)
     {
-        Image i = e.target as Image;
-        i.tintColor = Color.red;
+        VisualElement i = e.target as VisualElement;
+        //i.tintColor = Color.red;
     }
 
 
@@ -499,8 +519,8 @@ public class InventoryGrid : MonoBehaviour
     /// <param name="e"></param>
     private void OnMouseOutBackgroundImageCallback(MouseOutEvent e)
     {
-        Image i = e.target as Image;
-        i.tintColor = Color.white;
+        VisualElement i = e.target as VisualElement;
+        //i.tintColor = Color.white;
     }
 
     #endregion

@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UIElements;
 
 [AddComponentMenu("Hitchhiker UI/Inventory Item")]
@@ -348,7 +346,7 @@ public class InventoryItem : MonoBehaviour
         //clears all UI elements that are children
         UI.Clear(VisualElementClearOptions.RecursiveReleaseResources);
         GridUI.Clear();
-        Background celltexture = Background.FromSprite(Config.CellTexture);
+        Background celltexture = Background.FromTexture2D(Config.CellTexture);
 
         VisualElement gridContainer = new VisualElement();
         for (uint col = 0; col < CurrentSpace.Width; col++)

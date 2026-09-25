@@ -462,9 +462,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   InventorySpace:
-    Width: 9
+    Width: 10
     Height: 5
-    Rows: fe000000ff010000ff010000ff0000007e000000u
+    Rows: fe030000ff000000ff000000ff030000fe030000u
   BaseElementID: InventoryBase
   config: {fileID: 11400000, guid: 9f36f454977b5fc4aa1c03afe8688504, type: 2}
 --- !u!224 &1910726473
