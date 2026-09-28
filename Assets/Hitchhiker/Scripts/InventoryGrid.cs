@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -128,18 +129,10 @@ public class InventoryGrid : MonoBehaviour
         AvailableSpace = InventorySpace.Duplicate();
         //get our renderer
         PanelRenderer = GetComponent<PanelRenderer>();
-        
-        
-        StartCoroutine(LoadUI());
 
-    }
 
-    private System.Collections.IEnumerator LoadUI()
-    {
-        yield return new WaitForFixedUpdate();
-
-        //when the renderer reloads, build our real UI.
         PanelRenderer.RegisterUIReloadCallback(OnUIReload);
+
     }
 
     #endregion
@@ -207,11 +200,6 @@ public class InventoryGrid : MonoBehaviour
         return null;
 
     }
-    
-
-    #endregion
-
-    #region Adding / Removing Items
 
     /// <summary>
     /// Returns whether this inventory can place the item at the specified position.
@@ -226,6 +214,12 @@ public class InventoryGrid : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// Returns whether two items can be combined / stacked.
+    /// </summary>
+    /// <param name="left"></param>
+    /// <param name="right"></param>
+    /// <returns></returns>
     private bool CanBeCombined(InventoryItem left, InventoryItem right)
     {
         if (left == null || right == null)
@@ -233,6 +227,11 @@ public class InventoryGrid : MonoBehaviour
 
         return left.Stackable && right.Stackable && left.ItemID == right.ItemID;
     }
+
+
+    #endregion
+
+    #region Adding / Removing Items
 
     /// <summary>
     /// Adds an item to the inventory. 
@@ -318,8 +317,9 @@ public class InventoryGrid : MonoBehaviour
     /// <param name="item"></param>
     public void PlaceNearest(InventoryItem item)
     {
+        throw new NotImplementedException();
         //TODO calculate the exact place to put the item
-        AddItem(item);
+        //AddItem(item);
     }
 
     #endregion
@@ -348,8 +348,6 @@ public class InventoryGrid : MonoBehaviour
         CurrentItem = item;
     }
 
-
-    #region Rotation
 
     /// <summary>
     /// Rotates the active item in the inventory. Use <see cref="RotateActiveItem()"/> for a more direct call.
@@ -392,8 +390,6 @@ public class InventoryGrid : MonoBehaviour
 
 
     }
-
-    #endregion
 
     #endregion
 

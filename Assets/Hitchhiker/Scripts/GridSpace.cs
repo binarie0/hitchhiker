@@ -16,25 +16,33 @@ using UnityEngine;
 public class GridSpace
 {
     /// <summary>
-    /// The max size that either the width or height can be. In this case, it is the size in bits of <see cref="UInt64"/>
+    /// The max size that the width can be. In this case, it is the size in bits of <see cref="UInt32"/>.
+    /// This value should not be modified.
     /// </summary>
-    internal const uint MaxOneDimensionalSize = 32;
+    internal const uint MaxWidth = 32;
+
+    /// <summary>
+    /// The max size that the height can be. In this case, it is the size in bits of <see cref="UInt32"/>.
+    /// This value can be arbitrarily modified to fit your scenario, however the size of <see cref="UInt32"/> 
+    /// allows for an even square.
+    /// </summary>
+    internal const uint MaxHeight = 32;
 
 
     /// <summary>
-    /// The total width of the GridSpace. This has a max size of <see cref="MaxOneDimensionalSize"/> and a minimum size of 1.
+    /// The total width of the GridSpace. This has a max size of <see cref="MaxWidth"/> and a minimum size of 1.
     /// This may not line up with the actual space the GridSpace takes up. See <see cref="CanAccommodate(GridSpace, Vector2Int)"/>
     /// to check whether GridSpaces overlap.
     /// </summary>
-    [SerializeField, Range(1, MaxOneDimensionalSize)]
+    [SerializeField, Range(1, MaxWidth)]
     public uint Width = 1;
 
     /// <summary>
-    /// The total height of the GridSpace. This has a max size of <see cref="MaxOneDimensionalSize"/> and a minimum size of 1.
+    /// The total height of the GridSpace. This has a max size of <see cref="MaxWidth"/> and a minimum size of 1.
     /// This may not line up with the actual space the GridSpace takes up. See <see cref="CanAccommodate(GridSpace, Vector2Int)"/>
     /// to check whether GridSpaces overlap.
     /// </summary>
-    [SerializeField, Range(1, MaxOneDimensionalSize)]
+    [SerializeField, Range(1, MaxHeight)]
     public uint Height = 1;
 
     /// <summary>
@@ -62,20 +70,7 @@ public class GridSpace
 
 
 
-    /// <summary>
-    /// Checks whether the space is occupied at the row and column specified.
-    /// </summary>
-    /// <param name="col">The column to check. This is zero-indexed.</param>
-    /// <param name="row"></param>
-    /// <returns>The bit value at <paramref name="col"/>,<paramref name="row"/>. </returns>
-    public bool SpaceOccupied(uint col, uint row)
-    {
-        if (row >= Height || col >= Width)
-        {
-            return false;
-        }
-        return (Rows[row] & (1 << (int)col)) != 0;
-    }
+    
 
     /// <summary>
     /// Gets or sets the underlying bits of this GridSpace via the indexer.
@@ -149,8 +144,21 @@ public class GridSpace
     /// <returns></returns>
     public bool SpaceOccupied(Vector2Int position) => SpaceOccupied((uint)position.x, (uint)position.y);
 
-    
-    
+
+    /// <summary>
+    /// Checks whether the space is occupied at the row and column specified.
+    /// </summary>
+    /// <param name="col">The column to check. This is zero-indexed.</param>
+    /// <param name="row"></param>
+    /// <returns>The bit value at <paramref name="col"/>,<paramref name="row"/>. </returns>
+    public bool SpaceOccupied(uint col, uint row)
+    {
+        if (row >= Height || col >= Width)
+        {
+            return false;
+        }
+        return (Rows[row] & (1 << (int)col)) != 0;
+    }
 
     /// <summary>
     /// Checks whether this grid space can accommodate <paramref name="other"/> with a <paramref name="delta"/> offset.

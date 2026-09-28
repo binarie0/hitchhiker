@@ -170,7 +170,7 @@ public class InventoryItem : MonoBehaviour
     /// <summary>
     /// The position of the item inside the inventory.
     /// </summary>
-    internal Observer<Vector2Int> InventoryPosition = Vector2Int.zero;
+    internal Observer<Vector2Int> InventoryPosition { get; private set; } = Vector2Int.zero;
 
     /// <summary>
     /// The previous position of this item.
@@ -317,13 +317,7 @@ public class InventoryItem : MonoBehaviour
     #endregion
 
     #region Inventory Addition and Edge Case Handling
-    internal void AddToInventory(InventoryGrid grid)
-    {
-        
-        //generate our ui and add it to the grid
-        GenerateUI(ParentGrid.CellSize, grid.Config);
-        ParentGrid.RootElement.Add(UI);
-    }
+    
 
     /// <summary>
     /// Reverts the item's position. This is called by <see cref="InventoryGrid.AddItem(InventoryItem)"/> if the position is invalid.
